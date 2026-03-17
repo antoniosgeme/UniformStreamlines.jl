@@ -1,0 +1,12 @@
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+version: 2
+updates:
+  - package-ecosystem: "julia"
+    directories:
+      - "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Ignore itself so `path = ".."` in subdir/Project.toml doesn't trigger it
+      - dependency-name: "UniformStreamlines"
+

@@ -1,0 +1,10 @@
+name = "UniformStreamlines"
+uuid = "d45a1faf-ed48-5bcd-af90-6f9b3352014e"
+authors = ["Antonios Gementzopoulos"]
+version = "0.1.0"
+
+[workspace]
+projects = ["test", "docs"]
+
+[compat]
+julia = "1.10"
