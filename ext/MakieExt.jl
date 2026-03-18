@@ -23,12 +23,10 @@ Makie.convert_arguments(::Makie.ArrowLike, arr::ArrowData{3}) = convert_argument
                                                                                 vec(arr.vectors[3,:]))
 
 
-Makie.args_preferred_axis(::Type{<:Streamlines}, obj::StreamlineData{2}) = Axis
-Makie.args_preferred_axis(::Type{<:Streamlines}, obj::StreamlineData{3}) = Axis3
-
-
 @recipe Streamlines (object,) begin
-    witharrows = false
+    with_arrows = false
+    arrows_every = 10
+    markersize = @inherit markersize
     color = :blue
     linewidth = @inherit linewidth
     linestyle = @inherit linestyle
@@ -39,14 +37,17 @@ Makie.args_preferred_axis(::Type{<:Streamlines}, obj::StreamlineData{3}) = Axis3
     Makie.mixin_generic_plot_attributes()...
 end
 
+Makie.args_preferred_axis(::Type{<:Streamlines}, obj::StreamlineData{2}) = Axis
+Makie.args_preferred_axis(::Type{<:Streamlines}, obj::StreamlineData{3}) = Axis3
+
 function Makie.plot!(plot::Streamlines{<:Tuple{StreamlineData{2}}})
     str = plot[:object][]  
 
     lines!(plot,plot.attributes,str)
-    if plot[:witharrows][]
-        arr = streamarrows(str; every=10, scale=0.1)
+    if plot[:with_arrows][]
+        arr = streamarrows(str; every=plot[:arrows_every][])
         ac = arrow_color(plot[:color][], arr)
-        plot_arrowheads!(plot, arr; color=ac)
+        plot_arrowheads!(plot, arr; color=ac, markersize=plot[:markersize][])
     end 
 
     return plot

@@ -65,7 +65,7 @@ end
 
 
 """
-    evenstream(lower, upper, u; kwargs...) -> Matrix{Float64}
+    evenstream(Val(D), lower, upper, u; kwargs...) -> Matrix{Float64}
 
 Compute evenly-spaced streamlines of the vector field `u` over the axis-aligned
 box `[lower, upper]`. Works in any dimension D (D=2 or D=3 are typical).
@@ -82,19 +82,18 @@ separated by columns of `NaN`.
 |:---------------|:--------|:-------------------------------------------------|
 | `min_density`  | `3`     | Coarse grid density for seeding start points     |
 | `max_density`  | `10`    | Fine grid density for collision detection        |
-| `unbroken`     | `false` | If `true`, lines pass through each other         |
+| `allow_collisions`     | `false` | If `true`, lines pass through each other         |
 | `seeds`        | `nothing` | Explicit seed points; overrides density grids  |
 | `min_length`   | `2`     | Discard streamlines with fewer than this many points |
 """
-function evenstream(lower::AbstractVector, upper::AbstractVector, u::Function;
+function evenstream(::Val{D}, lower::Vector{<:Real}, upper::Vector{<:Real}, u;
                 min_density = 3,
                 max_density = 10,
-                unbroken::Bool = false,
-                seeds::Union{Nothing, NTuple{S, AbstractVector}} = nothing,
+                allow_collisions::Bool = false,
+                seeds::Union{Nothing, Tuple{Vararg{AbstractVector}}} = nothing,
                 min_length::Int = 2
-                ) where {S}
+                ) where D
 
-    D      = length(lower)
     num    = 10
     nstart = ceil(Int, num * min_density)
     nend   = ceil(Int, num * max_density)
@@ -105,8 +104,8 @@ function evenstream(lower::AbstractVector, upper::AbstractVector, u::Function;
     stepsize = min(rng ./ (nend * 2)..., 0.1) 
     maxvert = 10000
 
-    dims_start = ntuple(_ -> nstart, D)
-    dims_end   = ntuple(_ -> nend,   D)
+    dims_start = ntuple(_ -> nstart, Val(D))
+    dims_end   = ntuple(_ -> nend,   Val(D))
     startgrid  = falses(dims_start)
     endgrid    = falses(dims_end)
     rc_list    = collect(CartesianIndices(startgrid))
@@ -119,23 +118,22 @@ function evenstream(lower::AbstractVector, upper::AbstractVector, u::Function;
     end
 
     # Trim a half-streamline: cut on NaN, box exit, or density collision.
-    function trim(v::AbstractMatrix; unbroken = false)
+    function trim(v::AbstractMatrix; allow_collisions = false)
         for i in axes(v, 2)
             any(isnan, view(v, :, i)) && return v[:, 1:i-1]
         end
 
-        t = CartesianIndex(floor.(Int, (v[:, 1] .- lower) .* irangece) .+ 1 ...)
+        t = CartesianIndex(ntuple(i -> floor(Int, (v[i, 1] - lower[i]) * irangece[i]) + 1, Val(D)))
 
         for j in axes(v, 2)
-            xc = v[:, j]
-            s  = CartesianIndex(clamp.(floor.(Int, (xc .- lower) .* irangecs) .+ 1, 1, nstart)...)
+            s = CartesianIndex(ntuple(i -> clamp(floor(Int, (v[i, j] - lower[i]) * irangecs[i]) + 1, 1, nstart), Val(D)))
             startgrid[s] = true
 
-            e = CartesianIndex(floor.(Int, (xc .- lower) .* irangece) .+ 1 ...)
-            if any(e.I .< 1) || any(e.I .> nend)
+            e = CartesianIndex(ntuple(i -> floor(Int, (v[i, j] - lower[i]) * irangece[i]) + 1, Val(D)))
+            if !checkbounds(Bool, endgrid, e)
                 return v[:, 1:j]
             end
-            if !unbroken && endgrid[e] && e != t
+            if !allow_collisions && endgrid[e] && e != t
                 return v[:, 1:j]
             end
             endgrid[e] = true
@@ -149,7 +147,7 @@ function evenstream(lower::AbstractVector, upper::AbstractVector, u::Function;
     n   = 0
 
     for x0 in start_points
-        ci = CartesianIndex(clamp.(floor.(Int, (x0 .- lower) ./ incstart) .+ 1, 1, nstart)...)
+        ci = CartesianIndex(ntuple(i -> clamp(floor(Int, (x0[i] - lower[i]) / incstart[i]) + 1, 1, nstart), Val(D)))
         if isnothing(seeds)
             startgrid[ci] && continue
         end
@@ -158,12 +156,12 @@ function evenstream(lower::AbstractVector, upper::AbstractVector, u::Function;
         vf = trace(x0, u, stepsize, maxvert, lower, upper,  1)
         vb = trace(x0, u, stepsize, maxvert, lower, upper, -1)
 
-        vo = if !unbroken
+        vo = if !allow_collisions
             hcat(trim(vb)[:, end:-1:1], trim(vf)[:, 2:end])
         else
             second = vb[:, end:-1:1]
             first  = vf[:, 2:end]
-            trim(hcat(second, first); unbroken = true)
+            trim(hcat(second, first); allow_collisions = true)
         end
 
         if size(vo, 2) > min_length

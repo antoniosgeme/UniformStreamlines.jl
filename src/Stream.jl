@@ -23,7 +23,7 @@ The 2-D/3-D flat forms are convenience wrappers around the N-D tuple form.
 - `max_density` — maximum separation.
 - `seeds` — A NTuple of vectors representing seed points.
 - `min_length` — discard streamlines shorter than this many points.
-- `unbroken` — Do not truncate streamlines when they intersect.
+- `allow_collisions` — Do not truncate streamlines when they intersect.
 
 # Returns
 A [`StreamlineData{D}`](@ref). Pass to [`colorize`](@ref) and [`streamarrows`](@ref).
@@ -48,10 +48,10 @@ arrows = streamarrows(result; every=15)
 ```
 """
 function stream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,Function}; kwargs...) where D
-    lower = [minimum(ax) for ax in axs]
-    upper = [maximum(ax) for ax in axs]
+    lower = Float64[minimum(ax) for ax in axs]
+    upper = Float64[maximum(ax) for ax in axs]
     field = p -> [f(p...) for f in fns]
-    paths = evenstream(lower, upper, field; kwargs...)
+    paths = evenstream(Val(D), lower, upper, field; kwargs...)
     return StreamlineData{D}(paths, lower, upper, field)
 end
 
@@ -61,11 +61,11 @@ function stream(axs::NTuple{D,AbstractVector}, arrs::NTuple{D,AbstractArray{<:Re
         size(A) == expected || throw(ArgumentError(
             "Component $k has size $(size(A)); expected $expected"))
     end
-    lower = [minimum(ax) for ax in axs]
-    upper = [maximum(ax) for ax in axs]
+    lower = Float64[minimum(ax) for ax in axs]
+    upper = Float64[maximum(ax) for ax in axs]
     itps  = map(A -> linear_interp(axs, A), arrs)
     field = p -> [itp(p) for itp in itps]
-    paths = evenstream(lower, upper, field; kwargs...)
+    paths = evenstream(Val(D), lower, upper, field; kwargs...)
     return StreamlineData{D}(paths, lower, upper, field)
 end
 
@@ -79,7 +79,7 @@ function stream(xs::AbstractVector, ys::AbstractVector,
     lower = [Float64(minimum(xs)), Float64(minimum(ys))]
     upper = [Float64(maximum(xs)), Float64(maximum(ys))]
     field = p -> [ufn(p...), vfn(p...)]
-    paths = evenstream(lower, upper, field; kwargs...)
+    paths = evenstream(Val(2), lower, upper, field; kwargs...)
     return StreamlineData{2}(paths, lower, upper, field)
 end
 
@@ -88,12 +88,12 @@ function stream(xs::AbstractVector, ys::AbstractVector,
                 U::AbstractMatrix{<:Real}, V::AbstractMatrix{<:Real}; kwargs...)
     @assert size(U) == (length(xs), length(ys)) "U must be size (length(xs), length(ys)) = ($(length(xs)), $(length(ys))); got $(size(U))"
     @assert size(V) == size(U) "V must be same size as U"
-    lower  = [minimum(xs), minimum(ys)]
-    upper  = [maximum(xs), maximum(ys)]
+    lower  = Float64[minimum(xs), minimum(ys)]
+    upper  = Float64[maximum(xs), maximum(ys)]
     u_itp  = linear_interp((xs, ys), U)
     v_itp  = linear_interp((xs, ys), V)
     field  = p -> [u_itp(p), v_itp(p)]
-    paths  = evenstream(lower, upper, field; kwargs...)
+    paths  = evenstream(Val(2), lower, upper, field; kwargs...)
     return StreamlineData{2}(paths, lower, upper, field)
 end
 
@@ -104,10 +104,10 @@ end
 
 function stream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
                     ufn::Function, vfn::Function, wfn::Function; kwargs...)
-    lower = [minimum(xs), minimum(ys), minimum(zs)]
-    upper = [maximum(xs), maximum(ys), maximum(zs)]
+    lower = Float64[minimum(xs), minimum(ys), minimum(zs)]
+    upper = Float64[maximum(xs), maximum(ys), maximum(zs)]
     field = p -> [ufn(p...), vfn(p...), wfn(p...)]
-    paths = evenstream(lower, upper, field; kwargs...)
+    paths = evenstream(Val(3), lower, upper, field; kwargs...)
     return StreamlineData{3}(paths, lower, upper, field)
 end
 
@@ -119,13 +119,13 @@ function stream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
     @assert size(U) == expected "U must be size $(expected); got $(size(U))"
     @assert size(V) == expected "V must be same size as U"
     @assert size(W) == expected "W must be same size as U"
-    lower  = [minimum(xs), minimum(ys), minimum(zs)]
-    upper  = [maximum(xs), maximum(ys), maximum(zs)]
+    lower  = Float64[minimum(xs), minimum(ys), minimum(zs)]
+    upper  = Float64[maximum(xs), maximum(ys), maximum(zs)]
     u_itp  = linear_interp((xs, ys, zs), U)
     v_itp  = linear_interp((xs, ys, zs), V)
     w_itp  = linear_interp((xs, ys, zs), W)
     field  = p -> [u_itp(p), v_itp(p), w_itp(p)]
-    paths  = evenstream(lower, upper, field; kwargs...)
+    paths  = evenstream(Val(3), lower, upper, field; kwargs...)
     return StreamlineData{3}(paths, lower, upper, field)
 end
 

@@ -20,4 +20,7 @@ MakieExt = "Makie"
 
 [compat]
 FastInterpolations = "0.4.4"
+LinearAlgebra = "1"
+Makie = "0.24"
+Random = "1"
 julia = "1.10"
