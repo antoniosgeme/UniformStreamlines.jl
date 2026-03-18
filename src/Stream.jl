@@ -223,10 +223,6 @@ An [`ArrowData{D}`](@ref) with fields:
 # Example
 ```julia
 arrows = streamarrows(result; every=15, scale=0.05)
-# In Makie:
-arrows!(ax, arrows.points[1,:], arrows.points[2,:],
-            arrows.vectors[1,:], arrows.vectors[2,:],
-            color = arrows.speeds)
 ```
 """
 function streamarrows(data::StreamlineData{D}; every::Int=10, scale::Real=1.0) where D
@@ -237,10 +233,11 @@ function streamarrows(data::StreamlineData{D}; every::Int=10, scale::Real=1.0) w
     pts    = Vector{Float64}[]   # will hold D-vectors
     vecs   = Vector{Float64}[]
     speeds = Float64[]
+    idxs   = Int[]
 
     seg_idx = 0   # position within the current segment
     for i in 1:N
-        p = view(paths, :, i)
+        p = paths[:, i]
         if any(isnan, p)
             seg_idx = 0
             continue
@@ -249,17 +246,17 @@ function streamarrows(data::StreamlineData{D}; every::Int=10, scale::Real=1.0) w
 
         # Need a left and right neighbour, both non-NaN.
         if seg_idx > 1 && i < N &&
-           !any(isnan, view(paths, :, i-1)) &&
-           !any(isnan, view(paths, :, i+1)) &&
+           !any(isnan, paths[:, i-1]) && 
+           !any(isnan, paths[:, i+1]) &&
            seg_idx % every == 0
 
             tangent = paths[:, i+1] .- paths[:, i-1]
-            n       = norm(tangent)
-            if n > 0
-                push!(pts,    copy(p))
-                push!(vecs,   tangent .* (scale / n))
-                push!(speeds, norm(field(p)))
-            end
+            n = norm(tangent)
+            push!(pts, p)
+            push!(vecs, tangent .* (scale / n))
+            push!(speeds, norm(field(p)))
+            push!(idxs, i)
+            
         end
     end
 
@@ -267,7 +264,8 @@ function streamarrows(data::StreamlineData{D}; every::Int=10, scale::Real=1.0) w
     if M == 0
         return ArrowData{D}(Matrix{Float64}(undef, D, 0),
                             Matrix{Float64}(undef, D, 0),
-                            Float64[])
+                            Float64[],
+                            Int[])
     end
 
     point_mat = Matrix{Float64}(undef, D, M)
@@ -277,5 +275,5 @@ function streamarrows(data::StreamlineData{D}; every::Int=10, scale::Real=1.0) w
         vec_mat[:,   j] = vecs[j]
     end
 
-    return ArrowData{D}(point_mat, vec_mat, speeds)
+    return ArrowData{D}(point_mat, vec_mat, speeds, idxs)
 end

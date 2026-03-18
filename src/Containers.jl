@@ -33,9 +33,12 @@ Holds arrow glyphs computed by `streamarrows`.
   (unit tangent scaled by `scale`).
 - `speeds  :: Vector{Float64}` — speed `‖field(p)‖` at each arrow, suitable
   for color-mapping.
+- `indices :: Vector{Int}`     — column indices into the original
+  `StreamlineData.paths` matrix, so per-vertex color arrays can be subsampled.
 """
 struct ArrowData{D}
     points  :: Matrix{Float64}
     vectors :: Matrix{Float64}
     speeds  :: Vector{Float64}
+    indices :: Vector{Int}
 end

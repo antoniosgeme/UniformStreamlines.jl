@@ -13,5 +13,8 @@ export evenstream                                     # high-level entry point
 export colorize, streamarrows                         # post-processing
 export StreamlineData, ArrowData                      # result types
 
+function streamlines end
+function streamlines! end
+export streamlines, streamlines!
 
 end
