@@ -1,10 +1,18 @@
 name = "UniformStreamlines"
 uuid = "d45a1faf-ed48-5bcd-af90-6f9b3352014e"
-authors = ["Antonios Gementzopoulos"]
 version = "0.1.0"
+authors = ["Antonios Gementzopoulos"]
 
 [workspace]
 projects = ["test", "docs"]
 
+[deps]
+FastInterpolations = "9ea80cae-fc13-4c00-8066-6eaedb12f34b"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
 [compat]
+FastInterpolations = "0.4.4"
+LinearAlgebra = "1.12.0"
+Random = "1.11.0"
 julia = "1.10"
