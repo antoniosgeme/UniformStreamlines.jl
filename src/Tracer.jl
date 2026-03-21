@@ -91,7 +91,8 @@ function evenstream(::Val{D}, lower::Vector{<:Real}, upper::Vector{<:Real}, u;
                 max_density = 10,
                 allow_collisions::Bool = false,
                 seeds::Union{Nothing, Tuple{Vararg{AbstractVector}}} = nothing,
-                min_length::Int = 2
+                min_length::Int = 2,
+                stepsize::Union{Nothing, Float64} = nothing
                 ) where D
 
     num    = 10
@@ -101,8 +102,8 @@ function evenstream(::Val{D}, lower::Vector{<:Real}, upper::Vector{<:Real}, u;
     incstart   = rng ./ nstart
     irangecs   = nstart ./ rng .* (1 - eps())
     irangece   = nend   ./ rng .* (1 - eps())
-    stepsize = min(rng ./ (nend * 2)..., 0.1) 
-    maxvert = 10000
+    stepsize = isnothing(stepsize) ? min(norm(rng) / (nend * 10), 0.05) : stepsize
+    maxvert = ceil(Int, 2 * norm(rng) / stepsize)
 
     dims_start = ntuple(_ -> nstart, Val(D))
     dims_end   = ntuple(_ -> nend,   Val(D))

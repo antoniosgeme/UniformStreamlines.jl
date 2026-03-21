@@ -75,7 +75,7 @@ function plot_arrowheads!(plot, arr::ArrowData{2}; color=:blue, markersize=12)
 end
 
 
-function plot_arrowheads3d!(plot, arr::ArrowData{3}; markersize=0.08)
+function plot_arrowheads3d!(plot, arr::ArrowData{3}; color=:blue, markersize=0.08)
     pts = Point3f.(arr.points[1, :], arr.points[2, :], arr.points[3, :])
     vecs = Vec3f.(arr.vectors[1, :], arr.vectors[2, :], arr.vectors[3, :])
     vecs = normalize.(vecs)
@@ -94,17 +94,20 @@ function plot_arrowheads3d!(plot, arr::ArrowData{3}; markersize=0.08)
         marker = cone_marker,
         rotation = rots,
         markersize = markersize,
-        color = arr.speeds,
+        color = color,
     )
 end
 
 
 function Makie.plot!(plot::Streamlines{<:Tuple{StreamlineData{3}}})
     str = plot[:object][]
-    arr = streamarrows(str; every=10, scale=0.1)
 
     lines!(plot, plot.attributes, str)
-    plot_arrowheads3d!(plot, arr)
+    if plot[:with_arrows][]
+        arr = streamarrows(str; every=plot[:arrows_every][])
+        ac = arrow_color(plot[:color][], arr)
+        plot_arrowheads3d!(plot, arr; color=ac, markersize=plot[:markersize][])
+    end
 
     return plot
 end

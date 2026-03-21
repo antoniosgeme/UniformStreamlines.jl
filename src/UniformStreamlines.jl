@@ -3,10 +3,11 @@ module UniformStreamlines
 using FastInterpolations
 using LinearAlgebra: norm
 using Random: shuffle!
+using StaticArrays
 
 include("Containers.jl")
 include("Tracer.jl")  
-include("Stream.jl")   
+include("Stream.jl")  
 
 export stream                                         # low-level core
 export evenstream                                     # high-level entry point

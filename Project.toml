@@ -10,17 +10,21 @@ projects = ["test", "docs"]
 FastInterpolations = "9ea80cae-fc13-4c00-8066-6eaedb12f34b"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [weakdeps]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 
 [extensions]
 MakieExt = "Makie"
-
+PlotsExt = "RecipesBase"
 
 [compat]
 FastInterpolations = "0.4.4"
 LinearAlgebra = "1"
 Makie = "0.24"
+RecipesBase = "0.6"
 Random = "1"
+StaticArrays = "1.9.18"
 julia = "1.10"

@@ -24,6 +24,7 @@ The 2-D/3-D flat forms are convenience wrappers around the N-D tuple form.
 - `seeds` — A NTuple of vectors representing seed points.
 - `min_length` — discard streamlines shorter than this many points.
 - `allow_collisions` — Do not truncate streamlines when they intersect.
+- `stepsize` — integration step size; by default, set adaptively based on the domain size and `max_density`.
 
 # Returns
 A [`StreamlineData{D}`](@ref). Pass to [`colorize`](@ref) and [`streamarrows`](@ref).
@@ -50,7 +51,7 @@ arrows = streamarrows(result; every=15)
 function stream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,Function}; kwargs...) where D
     lower = Float64[minimum(ax) for ax in axs]
     upper = Float64[maximum(ax) for ax in axs]
-    field = p -> [f(p...) for f in fns]
+    field = p -> SVector(ntuple(i -> fns[i](p...), Val(D)))
     paths = evenstream(Val(D), lower, upper, field; kwargs...)
     return StreamlineData{D}(paths, lower, upper, field)
 end
@@ -64,7 +65,7 @@ function stream(axs::NTuple{D,AbstractVector}, arrs::NTuple{D,AbstractArray{<:Re
     lower = Float64[minimum(ax) for ax in axs]
     upper = Float64[maximum(ax) for ax in axs]
     itps  = map(A -> linear_interp(axs, A), arrs)
-    field = p -> [itp(p) for itp in itps]
+    field = p -> SVector(ntuple(i -> itps[i](p), Val(D)))
     paths = evenstream(Val(D), lower, upper, field; kwargs...)
     return StreamlineData{D}(paths, lower, upper, field)
 end
@@ -78,7 +79,7 @@ function stream(xs::AbstractVector, ys::AbstractVector,
                 ufn::Function, vfn::Function; kwargs...)
     lower = [Float64(minimum(xs)), Float64(minimum(ys))]
     upper = [Float64(maximum(xs)), Float64(maximum(ys))]
-    field = p -> [ufn(p...), vfn(p...)]
+    field = p -> SVector(ufn(p...), vfn(p...))
     paths = evenstream(Val(2), lower, upper, field; kwargs...)
     return StreamlineData{2}(paths, lower, upper, field)
 end
@@ -92,7 +93,7 @@ function stream(xs::AbstractVector, ys::AbstractVector,
     upper  = Float64[maximum(xs), maximum(ys)]
     u_itp  = linear_interp((xs, ys), U)
     v_itp  = linear_interp((xs, ys), V)
-    field  = p -> [u_itp(p), v_itp(p)]
+    field  = p -> SVector(u_itp(p), v_itp(p))
     paths  = evenstream(Val(2), lower, upper, field; kwargs...)
     return StreamlineData{2}(paths, lower, upper, field)
 end
