@@ -5,23 +5,31 @@ using LinearAlgebra
 import UniformStreamlines: streamlines, streamlines!
 using Makie
 
-Makie.convert_arguments(P::PointBased,str::StreamlineData{2}) = convert_arguments(P,str.paths[1,:], str.paths[2,:])
-Makie.convert_arguments(P::PointBased,str::StreamlineData{3}) = convert_arguments(P,str.paths[1,:], str.paths[2,:], str.paths[3,:])
+Makie.convert_arguments(P::PointBased, str::StreamlineData{2}) =
+    convert_arguments(P, str.paths[1, :], str.paths[2, :])
 
-Makie.convert_arguments(::Makie.ArrowLike, arr::ArrowData{2}) = convert_arguments(PointBased(), 
-                                                                                vec(arr.points[1,:]), 
-                                                                                vec(arr.points[2,:]), 
-                                                                                vec(arr.vectors[1,:]), 
-                                                                                vec(arr.vectors[2,:]))
+Makie.convert_arguments(P::PointBased, str::StreamlineData{3}) =
+    convert_arguments(P, str.paths[1, :], str.paths[2, :], str.paths[3, :])
 
-Makie.convert_arguments(::Makie.ArrowLike, arr::ArrowData{3}) = convert_arguments(PointBased(), 
-                                                                                vec(arr.points[1,:]), 
-                                                                                vec(arr.points[2,:]), 
-                                                                                vec(arr.points[3,:]), 
-                                                                                vec(arr.vectors[1,:]), 
-                                                                                vec(arr.vectors[2,:]), 
-                                                                                vec(arr.vectors[3,:]))
+Makie.convert_arguments(::Makie.ArrowLike, arr::ArrowData{2}) =
+    convert_arguments(
+        PointBased(),
+        vec(arr.points[1, :]),
+        vec(arr.points[2, :]),
+        vec(arr.vectors[1, :]),
+        vec(arr.vectors[2, :]),
+    )
 
+Makie.convert_arguments(::Makie.ArrowLike, arr::ArrowData{3}) =
+    convert_arguments(
+        PointBased(),
+        vec(arr.points[1, :]),
+        vec(arr.points[2, :]),
+        vec(arr.points[3, :]),
+        vec(arr.vectors[1, :]),
+        vec(arr.vectors[2, :]),
+        vec(arr.vectors[3, :]),
+    )
 
 @recipe Streamlines (object,) begin
     with_arrows = false
@@ -30,7 +38,7 @@ Makie.convert_arguments(::Makie.ArrowLike, arr::ArrowData{3}) = convert_argument
     color = :blue
     linewidth = @inherit linewidth
     linestyle = @inherit linestyle
-    linecap   = @inherit linecap
+    linecap = @inherit linecap
     joinstyle = @inherit joinstyle
     miter_limit = @inherit miter_limit
     Makie.mixin_colormap_attributes()...
@@ -40,80 +48,135 @@ end
 Makie.args_preferred_axis(::Type{<:Streamlines}, obj::StreamlineData{2}) = Axis
 Makie.args_preferred_axis(::Type{<:Streamlines}, obj::StreamlineData{3}) = Axis3
 
-function Makie.plot!(plot::Streamlines{<:Tuple{StreamlineData{2}}})
-    str = plot[:object][]  
-
-    lines!(plot,plot.attributes,str)
-    if plot[:with_arrows][]
-        arr = streamarrows(str; every=plot[:arrows_every][])
-        ac = arrow_color(plot[:color][], arr)
-        plot_arrowheads!(plot, arr; color=ac, markersize=plot[:markersize][])
-    end 
-
-    return plot
-end
-
 function arrow_color(color, arr::ArrowData)
-    color isa AbstractVector ? color[arr.indices] : color
+    return color isa AbstractVector ? color[arr.indices] : color
 end
 
-function plot_arrowheads!(plot, arr::ArrowData{2}; color=:blue, markersize=12)
+function colorrange_from(color)
+    if color isa AbstractVector
+        vals = filter(!isnan, color)
+        return isempty(vals) ? (0.0, 1.0) : (Float64(minimum(vals)), Float64(maximum(vals)))
+    else
+        return nothing
+    end
+end
+
+function resolved_colorrange(plot)
+    cr = plot[:colorrange][]
+    if cr === Makie.automatic || cr === nothing
+        return colorrange_from(plot[:color][])
+    else
+        return cr
+    end
+end
+
+function plot_arrowheads!(plot, arr::ArrowData{2};
+    color = :blue,
+    colorrange = nothing,
+    colormap = nothing,
+    markersize = 12
+)
     pts = Point2f.(arr.points[1, :], arr.points[2, :])
     vecs = Vec2f.(arr.vectors[1, :], arr.vectors[2, :])
 
     rots = atan.(getindex.(vecs, 2), getindex.(vecs, 1)) .- π/2
 
-    scatter!(
-        plot,
-        plot.attributes,
-        pts;
-        marker = :utriangle,
-        rotation = rots,
-        markersize = markersize,
-        color = color
+    kw = Dict{Symbol, Any}(
+        :marker => :utriangle,
+        :rotation => rots,
+        :markersize => markersize,
+        :color => color,
     )
+
+    if colorrange !== nothing
+        kw[:colorrange] = colorrange
+    end
+    if colormap !== nothing
+        kw[:colormap] = colormap
+    end
+
+    scatter!(plot, pts; kw...)
 end
 
-
-function plot_arrowheads3d!(plot, arr::ArrowData{3}; color=:blue, markersize=0.08)
+function plot_arrowheads3d!(plot, arr::ArrowData{3};
+    color = :blue,
+    colorrange = nothing,
+    colormap = nothing,
+    markersize = 0.08
+)
     pts = Point3f.(arr.points[1, :], arr.points[2, :], arr.points[3, :])
     vecs = Vec3f.(arr.vectors[1, :], arr.vectors[2, :], arr.vectors[3, :])
     vecs = normalize.(vecs)
 
     cone_marker = Makie.Tessellation(
         Makie.Cone(Makie.Point3f(0), Makie.Point3f(0, 0, 1), 0.5f0),
-        16
+        16,
     )
 
     rots = rotation_z_to.(vecs)
 
-    meshscatter!(
-        plot,
-        plot.attributes,
-        pts;
-        marker = cone_marker,
-        rotation = rots,
-        markersize = markersize,
-        color = color,
+    kw3 = Dict{Symbol, Any}(
+        :marker => cone_marker,
+        :rotation => rots,
+        :markersize => markersize,
+        :color => color,
     )
+
+    if colorrange !== nothing
+        kw3[:colorrange] = colorrange
+    end
+    if colormap !== nothing
+        kw3[:colormap] = colormap
+    end
+
+    meshscatter!(plot, pts; kw3...)
 end
 
-
-function Makie.plot!(plot::Streamlines{<:Tuple{StreamlineData{3}}})
+function Makie.plot!(plot::Streamlines{<:Tuple{StreamlineData{2}}})
     str = plot[:object][]
 
     lines!(plot, plot.attributes, str)
+
     if plot[:with_arrows][]
-        arr = streamarrows(str; every=plot[:arrows_every][])
+        arr = streamarrows(str; every = plot[:arrows_every][])
         ac = arrow_color(plot[:color][], arr)
-        plot_arrowheads3d!(plot, arr; color=ac, markersize=plot[:markersize][])
+        cr = resolved_colorrange(plot)
+        cm = plot[:colormap][]
+        plot_arrowheads!(
+            plot,
+            arr;
+            color = ac,
+            colorrange = cr,
+            colormap = cm,
+            markersize = plot[:markersize][],
+        )
     end
 
     return plot
 end
 
-using LinearAlgebra
-using Makie
+function Makie.plot!(plot::Streamlines{<:Tuple{StreamlineData{3}}})
+    str = plot[:object][]
+
+    lines!(plot, plot.attributes, str)
+
+    if plot[:with_arrows][]
+        arr = streamarrows(str; every = plot[:arrows_every][])
+        ac = arrow_color(plot[:color][], arr)
+        cr = resolved_colorrange(plot)
+        cm = plot[:colormap][]
+        plot_arrowheads3d!(
+            plot,
+            arr;
+            color = ac,
+            colorrange = cr,
+            colormap = cm,
+            markersize = plot[:markersize][],
+        )
+    end
+
+    return plot
+end
 
 function rotation_z_to(v::Vec3f)
     z = Vec3f(0, 0, 1)
@@ -121,13 +184,11 @@ function rotation_z_to(v::Vec3f)
 
     c = clamp(dot(z, vn), -1f0, 1f0)
 
-    # same direction
-    if isapprox(c, 1f0; atol=1f-6)
+    if isapprox(c, 1f0; atol = 1f-6)
         return Makie.Quaternionf(1, 0, 0, 0)
     end
 
-    # opposite direction
-    if isapprox(c, -1f0; atol=1f-6)
+    if isapprox(c, -1f0; atol = 1f-6)
         return Makie.qrotation(Vec3f(1, 0, 0), π)
     end
 
@@ -137,4 +198,4 @@ function rotation_z_to(v::Vec3f)
     return Makie.qrotation(axis, angle)
 end
 
-end 
+end

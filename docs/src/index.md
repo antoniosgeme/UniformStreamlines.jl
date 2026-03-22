@@ -40,6 +40,8 @@ using CairoMakie
 streamlines(str)
 ```
 
+![Quick Start — Rigid-Body Rotation](../../assets/quickstart.png)
+
 ## Features
 
 ### Function or Matrix Input
@@ -75,6 +77,8 @@ str_dense = stream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
 
 `min_density` controls the coarse grid used for seeding start points. `max_density` controls the fine grid used for collision detection between neighboring streamlines.
 
+![Density Control](../../assets/density_control.png)
+
 ### Coloring
 
 Use `colorize` to compute a per-point scalar for color-mapping:
@@ -99,6 +103,8 @@ using Plots
 streamlines(str; line_z=c, color=:viridis)
 ```
 
+![Coloring by Speed](../../assets/coloring.png)
+
 ### Arrows
 
 Add directional arrows along streamlines:
@@ -111,6 +117,22 @@ streamlines(str; with_arrows=true, arrows_every=20, arrow_scale=0.5)
 streamlines(str; with_arrows=true, arrows_every=20)
 ```
 
+![Arrows — Saddle Field](../../assets/arrows.png)
+
+Control arrow size with `markersize` (Makie) or `arrow_scale` (Plots.jl):
+
+```julia
+# Makie — small vs large arrows
+streamlines(str; with_arrows=true, arrows_every=20, markersize=8)   # small
+streamlines(str; with_arrows=true, arrows_every=20, markersize=20)  # large
+
+# Plots.jl
+streamlines(str; with_arrows=true, arrows_every=20, arrow_scale=0.5)  # half size
+streamlines(str; with_arrows=true, arrows_every=20, arrow_scale=2.0)  # double size
+```
+
+![Arrow Size Comparison](../../assets/arrow_sizes.png)
+
 ### NaN Masking
 
 Return `NaN` from velocity functions to mask out regions of the domain. Streamlines will not enter or cross masked areas:
@@ -122,6 +144,8 @@ v(x, y) = (x+1)^2 + y^2 < 1 ? NaN : x - y
 str = stream(xs, ys, u, v)
 ```
 
+![NaN Masking — Circular Obstacle](../../assets/nan_masking.png)
+
 ### Seed Points
 
 Provide explicit seed points to control where streamlines originate:
@@ -132,6 +156,8 @@ seed_y = [ 0.0, 0.0, 0.0]
 str = stream(xs, ys, (x, y) -> x + y, (x, y) -> x - y; seeds=(seed_x, seed_y))
 ```
 
+![Seed Points](../../assets/seeds.png)
+
 ### Unbroken Streamlines
 
 By default, streamlines are truncated when they approach an existing streamline. Set `allow_collisions=true` to let them pass through each other:
@@ -141,6 +167,8 @@ str = stream(xs, ys, (x, y) -> -y / (x^2 + y^2 + 0.1),
                      (x, y) ->  x / (x^2 + y^2 + 0.1);
              allow_collisions=true)
 ```
+
+![Unbroken Streamlines](../../assets/unbroken.png)
 
 ### 3-D Streamlines
 
@@ -195,4 +223,15 @@ str4 = stream(axs, fns)
 | `arrows_every` | `10` | Place an arrow every N vertices |
 | `arrow_scale` | `1.0` | Scale factor for arrow size |
 | `line_z` | — | Per-point color values from `colorize` |
+
+### Keyword arguments for Makie recipe
+
+| Keyword | Default | Description |
+|:--------|:--------|:------------|
+| `with_arrows` | `false` | Show directional arrowheads |
+| `arrows_every` | `10` | Place an arrow every N vertices |
+| `markersize` | `12` (2-D) / `0.08` (3-D) | Size of arrowhead markers |
+| `color` | `:blue` | Line / arrowhead color or per-point vector from `colorize` |
+| `linewidth` | inherited | Width of streamlines |
+| `colormap` | — | Colormap for color-mapped data |
 

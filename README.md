@@ -7,13 +7,19 @@
 [![Docs workflow Status](https://github.com/antoniosgeme/UniformStreamlines.jl/actions/workflows/Docs.yml/badge.svg?branch=main)](https://github.com/antoniosgeme/UniformStreamlines.jl/actions/workflows/Docs.yml?query=branch%3Amain)
 [![BestieTemplate](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JuliaBesties/BestieTemplate.jl/main/docs/src/assets/badge.json)](https://github.com/JuliaBesties/BestieTemplate.jl)
 
+
+<p align="center">
+  <img src="assets/logo.png" alt="ex1" width="600">
+</p>
+
+
 Evenly-spaced streamlines for 2-D, 3-D, and N-D vector fields in Julia, using the Jobard–Lefer algorithm. Works with function-defined or grid-defined velocity fields, with built-in support for Plots.jl and Makie.jl.
 
 ## Installation
 
 ```julia
 using Pkg
-Pkg.add("UniformStreamlines")
+Pkg.add("https://github.com/antoniosgeme/UniformStreamlines.jl.git")
 ```
 
 ## Quick Start
@@ -47,6 +53,8 @@ using CairoMakie
 streamlines(str)
 ```
 
+![Quick Start](assets/quickstart.png)
+
 ## Features
 
 ### Density Control
@@ -61,6 +69,8 @@ str = stream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
              min_density=5, max_density=15)
 ```
 
+![Density Control](assets/density_control.png)
+
 ### Color-Mapping
 
 ```julia
@@ -73,11 +83,7 @@ streamlines(str; line_z=c, color=:viridis)
 
 Built-in color symbols: `:speed`, `:vx`, `:vy`, `:vz`, `:x`, `:y`, `:z`, or pass any `(pos, vel) -> scalar` function.
 
-### Directional Arrows
-
-```julia
-streamlines(str; with_arrows=true, arrows_every=20)
-```
+![Coloring by Speed](assets/coloring.png)
 
 ### NaN Masking
 
@@ -89,12 +95,16 @@ v(x, y) = (x+1)^2 + y^2 < 1 ? NaN : x - y
 str = stream(xs, ys, u, v)
 ```
 
+![NaN Masking](assets/nan_masking.png)
+
 ### Seed Points
 
 ```julia
 str = stream(xs, ys, (x, y) -> x + y, (x, y) -> x - y;
              seeds=([-1.0, 0.0, 1.0], [0.0, 0.0, 0.0]))
 ```
+
+![Seed Points](assets/seeds.png)
 
 ### Unbroken Streamlines
 
@@ -103,6 +113,8 @@ str = stream(xs, ys, (x, y) -> -y / (x^2 + y^2 + 0.1),
                      (x, y) ->  x / (x^2 + y^2 + 0.1);
              allow_collisions=true)
 ```
+
+![Unbroken Streamlines](assets/unbroken.png)
 
 ### 3-D
 
