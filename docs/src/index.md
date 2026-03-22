@@ -40,7 +40,7 @@ using CairoMakie
 streamlines(str)
 ```
 
-![Quick Start — Rigid-Body Rotation](../../assets/quickstart.png)
+![Quick Start — Rigid-Body Rotation](assets/quickstart.png)
 
 ## Features
 
@@ -77,7 +77,7 @@ str_dense = stream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
 
 `min_density` controls the coarse grid used for seeding start points. `max_density` controls the fine grid used for collision detection between neighboring streamlines.
 
-![Density Control](../../assets/density_control.png)
+![Density Control](assets/density_control.png)
 
 ### Coloring
 
@@ -103,7 +103,7 @@ using Plots
 streamlines(str; line_z=c, color=:viridis)
 ```
 
-![Coloring by Speed](../../assets/coloring.png)
+![Coloring by Speed](assets/coloring.png)
 
 ### Arrows
 
@@ -117,7 +117,7 @@ streamlines(str; with_arrows=true, arrows_every=20, arrow_scale=0.5)
 streamlines(str; with_arrows=true, arrows_every=20)
 ```
 
-![Arrows — Saddle Field](../../assets/arrows.png)
+![Arrows — Saddle Field](assets/arrows.png)
 
 Control arrow size with `markersize` (Makie) or `arrow_scale` (Plots.jl):
 
@@ -131,7 +131,7 @@ streamlines(str; with_arrows=true, arrows_every=20, arrow_scale=0.5)  # half siz
 streamlines(str; with_arrows=true, arrows_every=20, arrow_scale=2.0)  # double size
 ```
 
-![Arrow Size Comparison](../../assets/arrow_sizes.png)
+![Arrow Size Comparison](assets/arrow_sizes.png)
 
 ### NaN Masking
 
@@ -144,7 +144,7 @@ v(x, y) = (x+1)^2 + y^2 < 1 ? NaN : x - y
 str = stream(xs, ys, u, v)
 ```
 
-![NaN Masking — Circular Obstacle](../../assets/nan_masking.png)
+![NaN Masking — Circular Obstacle](assets/nan_masking.png)
 
 ### Seed Points
 
@@ -156,7 +156,7 @@ seed_y = [ 0.0, 0.0, 0.0]
 str = stream(xs, ys, (x, y) -> x + y, (x, y) -> x - y; seeds=(seed_x, seed_y))
 ```
 
-![Seed Points](../../assets/seeds.png)
+![Seed Points](assets/seeds.png)
 
 ### Unbroken Streamlines
 
@@ -168,7 +168,7 @@ str = stream(xs, ys, (x, y) -> -y / (x^2 + y^2 + 0.1),
              allow_collisions=true)
 ```
 
-![Unbroken Streamlines](../../assets/unbroken.png)
+![Unbroken Streamlines](assets/unbroken.png)
 
 ### 3-D Streamlines
 
@@ -184,6 +184,24 @@ str3 = stream(xs, ys, zs,
               (x, y, z) ->  x,
               (x, y, z) ->  0.3z)
 ```
+
+A more interesting example — the Arnold–Beltrami–Childress (ABC) flow with directional arrows:
+
+```julia
+A, B, C = 1.0, √2, √3
+str3 = stream(xs, ys, zs,
+              (x, y, z) -> A * sin(z) + C * cos(y),
+              (x, y, z) -> B * sin(x) + A * cos(z),
+              (x, y, z) -> C * sin(y) + B * cos(x);
+              min_density=2, max_density=4)
+c3 = colorize(str3, :speed)
+
+using GLMakie
+streamlines(str3; color=c3, colormap=:magma,
+            with_arrows=true, arrows_every=25, markersize=0.12)
+```
+
+![3-D ABC Flow](assets/3d_arrows.png)
 
 ### N-D Streamlines
 

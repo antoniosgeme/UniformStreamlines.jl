@@ -123,6 +123,22 @@ xs = LinRange(-2, 2, 50); ys = LinRange(-2, 2, 50); zs = LinRange(-2, 2, 50)
 str3 = stream(xs, ys, zs, (x,y,z) -> -y, (x,y,z) -> x, (x,y,z) -> 0.3z)
 ```
 
+ABC flow with arrows and speed coloring:
+
+```julia
+A, B, C = 1.0, √2, √3
+str3 = stream(xs, ys, zs,
+              (x,y,z) -> A*sin(z) + C*cos(y),
+              (x,y,z) -> B*sin(x) + A*cos(z),
+              (x,y,z) -> C*sin(y) + B*cos(x);
+              min_density=2, max_density=4)
+c3 = colorize(str3, :speed)
+streamlines(str3; color=c3, colormap=:magma,
+            with_arrows=true, arrows_every=25, markersize=0.12)
+```
+
+![3-D ABC Flow](assets/3d_arrows.png)
+
 ### N-D (Tuple Form)
 
 ```julia

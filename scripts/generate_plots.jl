@@ -151,4 +151,28 @@ tightlimits!(ax7b)
 save(joinpath(ASSETS, "unbroken.png"), fig7; px_per_unit=2)
 println("  ✓ unbroken.png")
 
+# ── 8. 3-D Streamlines with Arrows ──────────────────────────────────────────
+
+xs8 = LinRange(-2, 2, 40)
+ys8 = LinRange(-2, 2, 40)
+zs8 = LinRange(-2, 2, 40)
+
+# ABC (Arnold–Beltrami–Childress) flow — a classic chaotic 3-D field
+A, B, C = 1.0, √2, √3
+str3 = stream(xs8, ys8, zs8,
+              (x, y, z) -> A * sin(z) + C * cos(y),
+              (x, y, z) -> B * sin(x) + A * cos(z),
+              (x, y, z) -> C * sin(y) + B * cos(x);
+              min_density=1, max_density=3)
+c3 = colorize(str3, :speed)
+
+fig8 = Figure(size=(700, 600));
+ax8 = Axis3(fig8[1, 1]; title="3-D ABC Flow with Arrows",
+            xlabel="x", ylabel="y", zlabel="z")
+streamlines!(ax8, str3; color=c3, colormap=:magma, linewidth=2,
+             with_arrows=true, arrows_every=25, markersize=0.12)
+save(joinpath(ASSETS, "3d_arrows.png"), fig8; px_per_unit=2)
+println("  ✓ 3d_arrows.png")
+
 println("\nAll plots saved to $(ASSETS)/")
+

@@ -165,13 +165,20 @@ function Makie.plot!(plot::Streamlines{<:Tuple{StreamlineData{3}}})
         ac = arrow_color(plot[:color][], arr)
         cr = resolved_colorrange(plot)
         cm = plot[:colormap][]
+        # For 3D, meshscatter markersize is in data units.
+        # Scale to ~2% of the domain diagonal when using the inherited theme default.
+        ms = plot[:markersize][]
+        if ms isa Number && ms >= 1  # likely inherited pixel value from theme
+            diag = norm(str.upper .- str.lower)
+            ms = 0.02 * diag
+        end
         plot_arrowheads3d!(
             plot,
             arr;
             color = ac,
             colorrange = cr,
             colormap = cm,
-            markersize = plot[:markersize][],
+            markersize = ms,
         )
     end
 
