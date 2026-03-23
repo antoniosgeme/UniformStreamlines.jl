@@ -96,10 +96,10 @@ Use `colorize` to compute a per-point scalar for color-mapping:
 
 ```julia
 str = stream(xs, ys, (x, y) -> sin(π*x) * cos(π*y), (x, y) -> 0.2y)
-c = colorize(str, :speed)
+c = colorize(str, :norm)
 ```
 
-Built-in color symbols: `:speed`, `:vx`, `:vy`, `:vz`, `:x`, `:y`, `:z`.
+Built-in color symbols: `:norm`, `:vx`, `:vy`, `:vz`, `:x`, `:y`, `:z`.
 
 You can also pass a custom function `(position, velocity) -> scalar`:
 
@@ -205,7 +205,7 @@ str3 = stream(xs, ys, zs,
               (x, y, z) -> B * sin(x) + A * cos(z),
               (x, y, z) -> C * sin(y) + B * cos(x);
               min_density=2, max_density=4)
-c3 = colorize(str3, :speed)
+c3 = colorize(str3, :norm)
 
 using GLMakie
 streamlines(str3; color=c3, colormap=:magma,

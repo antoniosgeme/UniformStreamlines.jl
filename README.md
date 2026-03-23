@@ -9,7 +9,7 @@
 
 
 <p align="center">
-  <img src="docs/src/assets/logo.png" alt="ex1" width="600">
+  <img src="docs/src/assets/logo.png" alt="ex1" width="400">
 </p>
 
 
@@ -31,7 +31,9 @@ xs = LinRange(-2, 2, 200)
 ys = LinRange(-2, 2, 200)
 
 # From functions
-str = stream(xs, ys, (x, y) -> -y, (x, y) -> x)
+u(x,y) = -y
+v(x,y) = x
+str = stream(xs, ys, u, v)
 
 # From matrices
 U = [-y for x in xs, y in ys]
@@ -62,12 +64,14 @@ streamlines(str)
 ### Density Control
 
 ```julia
+u(x,y) = -1 - x^2 + y
+v(x,y) = 1 + x - y^2
 # Sparse streamlines
-str = stream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
+str = stream(xs, ys, u, v ;
              min_density=2, max_density=4)
 
 # Dense streamlines
-str = stream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
+str = stream(xs, ys, u, v; 
              min_density=5, max_density=15)
 ```
 
@@ -77,13 +81,13 @@ str = stream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
 
 ```julia
 str = stream(xs, ys, (x, y) -> sin(π*x) * cos(π*y), (x, y) -> 0.2y)
-c = colorize(str, :speed)
+c = colorize(str, :norm)
 
-# Plots.jl
-streamlines(str; line_z=c, color=:viridis)
+# Makie
+streamlines(str; color=colors, color=:viridis)
 ```
 
-Built-in color symbols: `:speed`, `:vx`, `:vy`, `:vz`, `:x`, `:y`, `:z`, or pass any `(pos, vel) -> scalar` function.
+Built-in color symbols: `:norm`, `:vx`, `:vy`, `:vz`, `:x`, `:y`, `:z`, or pass any `(pos, vel) -> scalar` function.
 
 <p align="center">
   <img src="docs/src/assets/coloring.png" alt="Coloring by Speed" width="500">
@@ -96,7 +100,11 @@ Return `NaN` to mask regions — streamlines stop at boundaries:
 ```julia
 u(x, y) = (x+1)^2 + y^2 < 1 ? NaN : x + y
 v(x, y) = (x+1)^2 + y^2 < 1 ? NaN : x - y
+
 str = stream(xs, ys, u, v)
+c = colorize(str,:norm)
+streamlines(str; color=c, colormap=:coolwarm, linewidth=2)
+
 ```
 
 <p align="center">
@@ -106,8 +114,21 @@ str = stream(xs, ys, u, v)
 ### Seed Points
 
 ```julia
+xs = -3:3
+ys = -3:3
+seed_x = rand(10) .* 6 .- 3  # 10 random x-coordinates in [-3, 3]
+seed_y = rand(10) .* 6 .- 3  # 10 random y-coordinates in [-3, 3]
+
+# create an Ntuple of seed 2D vectors [x,y] from the separate x and y vectors
+seeds = ntuple(i -> [seed_x[i], seed_y[i]], length(seed_x))
+
 str = stream(xs, ys, (x, y) -> x + y, (x, y) -> x - y;
-             seeds=([-1.0, 0.0, 1.0], [0.0, 0.0, 0.0]))
+             seeds=seeds)
+c_seed = colorize(str, (p, v) -> atan(v[2], v[1]))
+streamlines(str; color=c_seed, colormap=:hsv, linewidth=2)
+scatter!(seed_x, seed_y; markersize=12, color=:black, label="seeds")
+
+
 ```
 
 <p align="center">
@@ -117,14 +138,26 @@ str = stream(xs, ys, (x, y) -> x + y, (x, y) -> x - y;
 ### Unbroken Streamlines
 
 ```julia
-str = stream(xs, ys, (x, y) -> -y / (x^2 + y^2 + 0.1),
-                     (x, y) ->  x / (x^2 + y^2 + 0.1);
-             allow_collisions=true)
+str_normal = stream(xs6, ys6,u_vdp, v_vdp)  
+str_unbroken = stream(xs6, ys6,u_vdp, v_vdp;
+                      allow_collisions=true)
+
+fig = Figure(size=(1000, 450));
+c_normal = colorize(str_normal, :norm)
+c_unbroken = colorize(str_unbroken, :norm)
+ax7a = Axis(fig[1, 1]; aspect=DataAspect(), title="Default (truncated)")
+streamlines!(ax7a, str_normal; color=c_normal, colormap=:turbo, linewidth=2)
+tightlimits!(ax7a)
+ax7b = Axis(fig[1, 2]; aspect=DataAspect(), title="allow_collisions = true")
+streamlines!(ax7b, str_unbroken; color=c_unbroken, colormap=:turbo, linewidth=2)
+tightlimits!(ax7b)
 ```
 
 <p align="center">
-  <img src="docs/src/assets/unbroken.png" alt="Unbroken Streamlines" width="500">
+  <img src="docs/src/assets/unbroken.png" alt="Unbroken Streamlines" width="800">
 </p>
+
+
 
 ### 3-D
 
@@ -142,7 +175,7 @@ str3 = stream(xs, ys, zs,
               (x,y,z) -> B*sin(x) + A*cos(z),
               (x,y,z) -> C*sin(y) + B*cos(x);
               min_density=2, max_density=4)
-c3 = colorize(str3, :speed)
+c3 = colorize(str3, :norm)
 streamlines(str3; color=c3, colormap=:magma,
             with_arrows=true, arrows_every=25, markersize=0.12)
 ```

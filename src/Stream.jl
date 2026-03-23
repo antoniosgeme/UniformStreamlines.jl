@@ -44,7 +44,7 @@ result = stream(xs, ys, U, V)
 zs = ts = LinRange(-2, 2, 200)
 result = stream((xs, ys, zs, ts), ((x,y,z,t) -> -y, (x,y,z,t) -> x, (x,y,z,t) -> z, (x,y,z,t) -> t))
 
-colors = colorize(result, :speed)
+colors = colorize(result, :norm)
 arrows = streamarrows(result; every=15)
 ```
 """
@@ -154,7 +154,7 @@ where `pos` and `vel` are both length-D vectors.
 
 | Symbol      | Equivalent function                        |
 |:------------|:-------------------------------------------|
-| `:speed`    | `(p, v) -> norm(v)`                        |
+| `:norm`    | `(p, v) -> norm(v)`                        |
 | `:vx`       | `(p, v) -> v[1]`                           |
 | `:vy`       | `(p, v) -> v[2]`                           |
 | `:vz`       | `(p, v) -> v[3]`  (3-D only)               |
@@ -164,7 +164,7 @@ where `pos` and `vel` are both length-D vectors.
 
 # Examples
 ```julia
-colors = colorize(result, :speed)
+colors = colorize(result, :norm)
 colors = colorize(result, (p, v) -> p[1]^2 + p[2]^2)   # distance² from origin
 colors = colorize(result, (p, v) -> v[1] / norm(v))     # cos(angle) with x-axis
 ```
@@ -188,14 +188,14 @@ end
 
 # Resolve symbol shortcuts to (pos, vel) -> Real functions.
 function resolve_color_fn(f::Symbol)
-    f === :speed && return (p, v) -> norm(v)
+    f === :norm && return (p, v) -> norm(v)
     f === :vx    && return (p, v) -> v[1]
     f === :vy    && return (p, v) -> v[2]
     f === :vz    && return (p, v) -> v[3]
     f === :x     && return (p, v) -> p[1]
     f === :y     && return (p, v) -> p[2]
     f === :z     && return (p, v) -> p[3]
-    throw(ArgumentError("Unknown color symbol :$f. Valid options: :speed, :vx, :vy, :vz, :x, :y, :z"))
+    throw(ArgumentError("Unknown color symbol :$f. Valid options: :norm, :vx, :vy, :vz, :x, :y, :z"))
 end
 resolve_color_fn(f::Function) = f
 

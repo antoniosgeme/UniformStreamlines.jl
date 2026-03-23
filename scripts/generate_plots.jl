@@ -48,7 +48,7 @@ ys3 = LinRange(-2, 2, 200)
 str_wave = stream(xs3, ys3,
                   (x, y) -> sin(π * x) * cos(π * y),
                   (x, y) -> 0.2y)
-c = colorize(str_wave, :speed)
+c = colorize(str_wave, :norm)
 
 fig3 = Figure(size=(650, 500));
 ax3 = Axis(fig3[1, 1]; aspect=DataAspect(), title="Coloring by Speed")
@@ -62,7 +62,7 @@ println("  ✓ coloring.png")
 # ── 4. Arrows ────────────────────────────────────────────────────────────────
 
 str_saddle = stream(xs, ys, (x, y) -> x + y, (x, y) -> x - y)
-c_saddle = colorize(str_saddle, :speed)
+c_saddle = colorize(str_saddle, :norm)
 
 fig4 = Figure(size=(600, 500));
 ax4 = Axis(fig4[1, 1]; aspect=DataAspect(), title="Arrows — Saddle Field")
@@ -101,7 +101,7 @@ cy = sin.(θ)
 
 fig5 = Figure(size=(600, 500));
 ax5 = Axis(fig5[1, 1]; aspect=DataAspect(), title="NaN Masking — Circular Obstacle")
-c_mask = colorize(str_mask, :speed)
+c_mask = colorize(str_mask, :norm)
 streamlines!(ax5, str_mask; color=c_mask, colormap=:coolwarm, linewidth=2)
 poly!(ax5, Point2f.(cx, cy); color=(:gray, 0.3), strokecolor=:black, strokewidth=2)
 tightlimits!(ax5)
@@ -140,8 +140,8 @@ str_unbroken = stream(xs6, ys6,u_vdp, v_vdp;
                       allow_collisions=true)
 
 fig7 = Figure(size=(1000, 450));
-c_normal = colorize(str_normal, :speed)
-c_unbroken = colorize(str_unbroken, :speed)
+c_normal = colorize(str_normal, :norm)
+c_unbroken = colorize(str_unbroken, :norm)
 ax7a = Axis(fig7[1, 1]; aspect=DataAspect(), title="Default (truncated)")
 streamlines!(ax7a, str_normal; color=c_normal, colormap=:turbo, linewidth=2)
 tightlimits!(ax7a)
@@ -164,7 +164,7 @@ str3 = stream(xs8, ys8, zs8,
               (x, y, z) -> B * sin(x) + A * cos(z),
               (x, y, z) -> C * sin(y) + B * cos(x);
               min_density=1, max_density=3)
-c3 = colorize(str3, :speed)
+c3 = colorize(str3, :norm)
 
 fig8 = Figure(size=(700, 600));
 ax8 = Axis3(fig8[1, 1]; title="3-D ABC Flow with Arrows",

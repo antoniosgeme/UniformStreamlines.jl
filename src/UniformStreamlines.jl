@@ -59,12 +59,12 @@ str = stream(xs, ys, (x, y) -> -y, (x, y) -> x)
 
 # Makie
 using CairoMakie
-streamlines(str; color=colorize(str, :speed), colormap=:viridis,
+streamlines(str; color=colorize(str, :norm), colormap=:viridis,
             with_arrows=true, arrows_every=30)
 
 # Plots.jl
 using Plots
-c = colorize(str, :speed)
+c = colorize(str, :norm)
 streamlines(str; line_z=c, color=:viridis,
             with_arrows=true, arrows_every=30)
 ```

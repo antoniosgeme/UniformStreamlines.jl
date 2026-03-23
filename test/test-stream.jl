@@ -207,8 +207,8 @@ end
 
     data = stream(xs, ys, ufn, vfn; min_density=0.5, max_density=1.0)
 
-    # :speed
-    speed = colorize(data, :speed)
+    # :norm
+    speed = colorize(data, :norm)
     @test length(speed) == size(data.paths, 2)
     nan_mask = [any(isnan, @view(data.paths[:, i])) for i in 1:size(data.paths, 2)]
     @test all(isnan, speed[nan_mask])
