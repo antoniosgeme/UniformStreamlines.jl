@@ -75,7 +75,18 @@ str_dense = stream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
                    min_density=5, max_density=15)
 ```
 
-`min_density` controls the coarse grid used for seeding start points. `max_density` controls the fine grid used for collision detection between neighboring streamlines.
+Both parameters are unitless multipliers that scale an internal base grid of 10 cells per axis:
+
+- **`min_density`** (default `3`) — Controls the *seeding grid*. The domain is divided into `10 × min_density` cells per axis. One candidate seed point is placed per cell, so a higher value means more candidate starting points and denser coverage.
+- **`max_density`** (default `10`) — Controls the *collision-detection grid*. The domain is divided into `10 × max_density` cells per axis. When a streamline is being integrated, it checks this finer grid to decide whether it is too close to an existing streamline. A higher value allows streamlines to pass closer together before being truncated.
+
+The ratio `max_density / min_density` determines how much room there is between the minimum spacing (set by the collision grid) and the seeding spacing. Typical values:
+
+| Style  | `min_density` | `max_density` |
+|:-------|:--------------|:--------------|
+| Sparse | 2             | 4             |
+| Normal | 3 (default)   | 10 (default)  |
+| Dense  | 5–8           | 15–30         |
 
 ![Density Control](assets/density_control.png)
 
@@ -212,6 +223,44 @@ axs = (LinRange(-2, 2, 50), LinRange(-2, 2, 50), LinRange(-2, 2, 50), LinRange(-
 fns = ((x, y, z, t) -> -y, (x, y, z, t) -> x, (x, y, z, t) -> z, (x, y, z, t) -> -t)
 str4 = stream(axs, fns)
 ```
+
+### Calling Conventions
+
+`stream` supports two equivalent calling styles:
+
+**Flat form** — pass axes and velocity components as separate positional arguments. This is the most convenient syntax for 2-D and 3-D fields:
+
+```julia
+# 2-D with functions
+str = stream(xs, ys, (x, y) -> -y, (x, y) -> x)
+
+# 2-D with matrices
+str = stream(xs, ys, U, V)
+
+# 3-D with functions
+str = stream(xs, ys, zs, (x,y,z) -> -y, (x,y,z) -> x, (x,y,z) -> 0.3z)
+
+# 3-D with matrices
+str = stream(xs, ys, zs, U, V, W)
+```
+
+**Tuple form** — pass axes as a tuple and velocity components as a tuple. This is the general N-D interface, but works in any dimension:
+
+```julia
+# 2-D (tuple form)
+str = stream((xs, ys), ((x,y) -> -y, (x,y) -> x))
+
+# 3-D (tuple form)
+str = stream((xs, ys, zs), ((x,y,z) -> -y, (x,y,z) -> x, (x,y,z) -> 0.3z))
+
+# 4-D
+str = stream((xs, ys, zs, ts), (f1, f2, f3, f4))
+
+# With pre-computed arrays
+str = stream((xs, ys), (U, V))
+```
+
+Both forms accept the same keyword arguments (`min_density`, `max_density`, `seeds`, `allow_collisions`, etc.). The flat form is simply a convenience wrapper that forwards to the tuple form internally.
 
 ## API Summary
 

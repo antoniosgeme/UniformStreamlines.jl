@@ -59,5 +59,5 @@ for i in 1:3
 end
 
 tightlimits!(ax)
-save(joinpath(@__DIR__, "..", "assets", "logo.png"), fig; px_per_unit=2)
+save(joinpath(@__DIR__, "..", "docs", "src", "assets", "logo.png"), fig; px_per_unit=2)
 

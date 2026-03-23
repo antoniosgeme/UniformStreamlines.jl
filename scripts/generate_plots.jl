@@ -1,11 +1,11 @@
 # Generate sample plots for README and documentation.
 # Run from the project root:
-#   julia --project assets/generate_plots.jl
+#   julia --project scripts/generate_plots.jl
 
 using UniformStreamlines
 using CairoMakie
 
-const ASSETS = joinpath(@__DIR__, "..", "assets")
+const ASSETS = joinpath(@__DIR__, "..", "docs", "src", "assets")
 mkpath(ASSETS)
 
 # ── 1. Quick Start: simple vortex ────────────────────────────────────────────
@@ -153,7 +153,7 @@ println("  ✓ unbroken.png")
 
 # ── 8. 3-D Streamlines with Arrows ──────────────────────────────────────────
 
-xs8 = LinRange(-2, 2, 40)
+xs8 = LinRange(-2, 2, 40)å
 ys8 = LinRange(-2, 2, 40)
 zs8 = LinRange(-2, 2, 40)
 

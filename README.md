@@ -9,7 +9,7 @@
 
 
 <p align="center">
-  <img src="assets/logo.png" alt="ex1" width="600">
+  <img src="docs/src/assets/logo.png" alt="ex1" width="600">
 </p>
 
 
@@ -53,7 +53,9 @@ using CairoMakie
 streamlines(str)
 ```
 
-![Quick Start](assets/quickstart.png)
+<p align="center">
+  <img src="docs/src/assets/quickstart.png" alt="Quick Start" width="500">
+</p>
 
 ## Features
 
@@ -69,7 +71,7 @@ str = stream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
              min_density=5, max_density=15)
 ```
 
-![Density Control](assets/density_control.png)
+![Density Control](docs/src/assets/density_control.png)
 
 ### Color-Mapping
 
@@ -83,7 +85,9 @@ streamlines(str; line_z=c, color=:viridis)
 
 Built-in color symbols: `:speed`, `:vx`, `:vy`, `:vz`, `:x`, `:y`, `:z`, or pass any `(pos, vel) -> scalar` function.
 
-![Coloring by Speed](assets/coloring.png)
+<p align="center">
+  <img src="docs/src/assets/coloring.png" alt="Coloring by Speed" width="500">
+</p>
 
 ### NaN Masking
 
@@ -95,7 +99,9 @@ v(x, y) = (x+1)^2 + y^2 < 1 ? NaN : x - y
 str = stream(xs, ys, u, v)
 ```
 
-![NaN Masking](assets/nan_masking.png)
+<p align="center">
+  <img src="docs/src/assets/nan_masking.png" alt="NaN Masking" width="500">
+</p>
 
 ### Seed Points
 
@@ -104,7 +110,9 @@ str = stream(xs, ys, (x, y) -> x + y, (x, y) -> x - y;
              seeds=([-1.0, 0.0, 1.0], [0.0, 0.0, 0.0]))
 ```
 
-![Seed Points](assets/seeds.png)
+<p align="center">
+  <img src="docs/src/assets/seeds.png" alt="Seed Points" width="500">
+</p>
 
 ### Unbroken Streamlines
 
@@ -114,7 +122,9 @@ str = stream(xs, ys, (x, y) -> -y / (x^2 + y^2 + 0.1),
              allow_collisions=true)
 ```
 
-![Unbroken Streamlines](assets/unbroken.png)
+<p align="center">
+  <img src="docs/src/assets/unbroken.png" alt="Unbroken Streamlines" width="500">
+</p>
 
 ### 3-D
 
@@ -137,7 +147,9 @@ streamlines(str3; color=c3, colormap=:magma,
             with_arrows=true, arrows_every=25, markersize=0.12)
 ```
 
-![3-D ABC Flow](assets/3d_arrows.png)
+<p align="center">
+  <img src="docs/src/assets/3d_arrows.png" alt="3-D ABC Flow" width="500">
+</p>
 
 ### N-D (Tuple Form)
 

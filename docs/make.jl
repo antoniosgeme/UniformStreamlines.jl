@@ -1,18 +1,6 @@
 using UniformStreamlines
 using Documenter
 
-# Copy plot assets into docs/src/assets/ so Documenter can find them
-let
-    src = joinpath(@__DIR__, "..", "assets")
-    dst = joinpath(@__DIR__, "src", "assets")
-    mkpath(dst)
-    if isdir(src)
-        for f in readdir(src)
-            endswith(f, ".png") && cp(joinpath(src, f), joinpath(dst, f); force=true)
-        end
-    end
-end
-
 DocMeta.setdocmeta!(UniformStreamlines, :DocTestSetup, :(using UniformStreamlines); recursive = true)
 
 # Add titles of sections and overrides page titles
