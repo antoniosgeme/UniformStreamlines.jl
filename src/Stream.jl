@@ -51,7 +51,7 @@ arrows = streamarrows(result; every=15)
 function stream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,Function}; kwargs...) where D
     lower = Float64[minimum(ax) for ax in axs]
     upper = Float64[maximum(ax) for ax in axs]
-    field = p -> SVector(ntuple(i -> fns[i](p...), Val(D)))
+    field = p -> (args = ntuple(j -> p[j], Val(D)); SVector(ntuple(i -> fns[i](args...), Val(D))))
     paths = evenstream(Val(D), lower, upper, field; kwargs...)
     return StreamlineData{D}(paths, lower, upper, field)
 end
@@ -79,7 +79,7 @@ function stream(xs::AbstractVector, ys::AbstractVector,
                 ufn::Function, vfn::Function; kwargs...)
     lower = [Float64(minimum(xs)), Float64(minimum(ys))]
     upper = [Float64(maximum(xs)), Float64(maximum(ys))]
-    field = p -> SVector(ufn(p...), vfn(p...))
+    field = p -> (args = ntuple(j -> p[j], Val(2)); SVector(ufn(args...), vfn(args...)))
     paths = evenstream(Val(2), lower, upper, field; kwargs...)
     return StreamlineData{2}(paths, lower, upper, field)
 end
@@ -107,7 +107,7 @@ function stream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
                     ufn::Function, vfn::Function, wfn::Function; kwargs...)
     lower = Float64[minimum(xs), minimum(ys), minimum(zs)]
     upper = Float64[maximum(xs), maximum(ys), maximum(zs)]
-    field = p -> [ufn(p...), vfn(p...), wfn(p...)]
+    field = p -> (args = ntuple(j -> p[j], Val(3)); SVector(ufn(args...), vfn(args...), wfn(args...)))
     paths = evenstream(Val(3), lower, upper, field; kwargs...)
     return StreamlineData{3}(paths, lower, upper, field)
 end
