@@ -1,21 +1,22 @@
 """
-    box_intersection(pin, pout, lower, upper)
+    box_intersection!(out, pin, pout, lower, upper)
 
-Return the point where the segment `pin → pout` crosses the axis-aligned box
-`[lower, upper]`. Assumes `pin` is inside the box and `pout` is outside.
-Works for arbitrary dimension D.
+Compute the point where the segment `pin → pout` crosses the axis-aligned box
+`[lower, upper]` and write the result into `out`.
+Assumes `pin` is inside the box and `pout` is outside.
 """
-function box_intersection(pin::AbstractVector, pout::AbstractVector,
-                          lower::AbstractVector, upper::AbstractVector)
-    d = pout .- pin
+function box_intersection!(out::AbstractVector, pin::AbstractVector, pout::AbstractVector,
+                           lower::AbstractVector, upper::AbstractVector)
     t = Inf
     for i in eachindex(pin)
-        if d[i] != 0
-            bound = d[i] > 0 ? upper[i] : lower[i]
-            t = min(t, (bound - pin[i]) / d[i])
+        di = pout[i] - pin[i]
+        if di != 0
+            bound = di > 0 ? upper[i] : lower[i]
+            t = min(t, (bound - pin[i]) / di)
         end
     end
-    return pin .+ t .* d
+    @. out = pin + t * (pout - pin)
+    return out
 end
 
 
@@ -27,9 +28,9 @@ Integrate a single streamline from `x0` into the pre-allocated buffer `verts`
 vectors. Returns the number of columns written.
 """
 function trace!(verts::Matrix{Float64}, pos::Vector{Float64}, x::Vector{Float64},
-                x0::AbstractVector, u::Function,
+                x0::AbstractVector, u::F,
                 stepsize::Float64, maxvert::Int,
-                lower::AbstractVector, upper::AbstractVector, sgn::Int)
+                lower::AbstractVector, upper::AbstractVector, sgn::Int) where F
     verts[:, 1] .= x0
 
     for i in 1:maxvert-1
@@ -41,7 +42,7 @@ function trace!(verts::Matrix{Float64}, pos::Vector{Float64}, x::Vector{Float64}
         # RK2 midpoint
         @. x = vi + sgn * (stepsize / 2) * v
         if !all(j -> lower[j] <= x[j] <= upper[j], eachindex(x))
-            verts[:, i+1] .= box_intersection(vi, x, lower, upper)
+            box_intersection!(view(verts, :, i+1), vi, x, lower, upper)
             return i + 1
         end
 
@@ -50,7 +51,7 @@ function trace!(verts::Matrix{Float64}, pos::Vector{Float64}, x::Vector{Float64}
 
         @. x = vi + sgn * stepsize * vm
         if !all(j -> lower[j] <= x[j] <= upper[j], eachindex(x))
-            verts[:, i+1] .= box_intersection(vi, x, lower, upper)
+            box_intersection!(view(verts, :, i+1), vi, x, lower, upper)
             return i + 1
         end
         verts[:, i+1] .= x
@@ -81,14 +82,14 @@ separated by columns of `NaN`.
 | `seeds`        | `nothing` | Explicit seed points; overrides density grids  |
 | `min_length`   | `2`     | Discard streamlines with fewer than this many points |
 """
-function evenstream(::Val{D}, lower::Vector{<:Real}, upper::Vector{<:Real}, u;
+function evenstream(::Val{D}, lower::Vector{<:Real}, upper::Vector{<:Real}, u::F;
                 min_density = 3,
                 max_density = 10,
                 allow_collisions::Bool = false,
                 seeds::Union{Nothing, Tuple{Vararg{AbstractVector}}} = nothing,
                 min_length::Int = 2,
                 stepsize::Union{Nothing, Float64} = nothing
-                ) where D
+                ) where {D, F}
 
     num    = 10
     nstart = ceil(Int, num * min_density)
@@ -110,11 +111,11 @@ function evenstream(::Val{D}, lower::Vector{<:Real}, upper::Vector{<:Real}, u;
     dims_end   = ntuple(_ -> nend,   Val(D))
     startgrid  = falses(dims_start)
     endgrid    = falses(dims_end)
-    rc_list    = collect(CartesianIndices(startgrid))
-    shuffle!(rc_list)
 
-    start_points = if isnothing(seeds)
-        [lower .+ (idx.I .- 0.5) .* incstart for idx in rc_list]
+    seed_list = if isnothing(seeds)
+        rc_list = collect(CartesianIndices(startgrid))
+        shuffle!(rc_list)
+        rc_list
     else
         seeds
     end
@@ -146,10 +147,20 @@ function evenstream(::Val{D}, lower::Vector{<:Real}, upper::Vector{<:Real}, u;
 
     B   = 100_000
     mat = Matrix{Float64}(undef, D, B)
+    x0  = Vector{Float64}(undef, D)
     n   = 0
 
-    for x0 in start_points
-        ci = CartesianIndex(ntuple(i -> clamp(floor(Int, (x0[i] - lower[i]) / incstart[i]) + 1, 1, nstart), Val(D)))
+    for item in seed_list
+        if item isa CartesianIndex
+            for i in 1:D
+                x0[i] = lower[i] + (item.I[i] - 0.5) * incstart[i]
+            end
+            ci = item
+        else
+            x0 .= item
+            ci = CartesianIndex(ntuple(i -> clamp(floor(Int, (x0[i] - lower[i]) / incstart[i]) + 1, 1, nstart), Val(D)))
+        end
+
         if isnothing(seeds)
             startgrid[ci] && continue
         end
