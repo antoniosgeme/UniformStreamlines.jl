@@ -340,3 +340,75 @@ end
     badW = zeros(length(xs), length(ys), length(zs) + 1)
     @test_throws ArgumentError stream((xs, ys, zs), (U, V, badW))
 end
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Coverage-focused cases (Tracer internals)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@testitem "allow_collisions=true exercises collision branch" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    using LinearAlgebra: norm
+    Random.seed!(70)
+
+    xs = collect(LinRange(-1, 1, 61))
+    ys = collect(LinRange(-1, 1, 61))
+    ufn(x, y) = -y
+    vfn(x, y) = x
+
+    no_col = stream(xs, ys, ufn, vfn; min_density=0.8, max_density=1.2, allow_collisions=false)
+    yes_col = stream(xs, ys, ufn, vfn; min_density=0.8, max_density=1.2, allow_collisions=true)
+
+    @test yes_col isa StreamlineData{2}
+    @test size(yes_col.paths, 1) == 2
+    @test size(yes_col.paths, 2) > 0
+    @test any(isnan, yes_col.paths)
+
+    segs_no = split_streams(no_col.paths)
+    segs_yes = split_streams(yes_col.paths)
+    @test !isempty(segs_no)
+    @test !isempty(segs_yes)
+
+    # With collisions allowed, the output should still be valid and typically denser.
+    @test length(segs_yes) >= length(segs_no)
+
+    # All non-NaN points must remain inside the domain.
+    valid_cols = [j for j in 1:size(yes_col.paths, 2) if !any(isnan, @view(yes_col.paths[:, j]))]
+    @test !isempty(valid_cols)
+    @test all(-1.0 - 1e-10 <= yes_col.paths[1, j] <= 1.0 + 1e-10 for j in valid_cols)
+    @test all(-1.0 - 1e-10 <= yes_col.paths[2, j] <= 1.0 + 1e-10 for j in valid_cols)
+
+    # Velocity should stay finite on valid points.
+    probe = yes_col.paths[:, valid_cols[clamp(div(length(valid_cols), 2), 1, length(valid_cols))]]
+    @test isfinite(norm(yes_col.field(probe)))
+end
+
+@testitem "explicit seeds with allow_collisions path" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(71)
+
+    xs = collect(LinRange(-1, 1, 41))
+    ys = collect(LinRange(-1, 1, 41))
+    ufn(x, y) = -y
+    vfn(x, y) = x
+    seeds = ([0.9, 0.0], [0.0, 0.9], [-0.9, 0.0])
+
+    data = stream(xs, ys, ufn, vfn;
+        seeds=seeds,
+        allow_collisions=true,
+        min_density=0.6,
+        max_density=1.0,
+    )
+
+    @test data isa StreamlineData{2}
+    @test size(data.paths, 1) == 2
+    @test size(data.paths, 2) > 0
+
+    valid_cols = [j for j in 1:size(data.paths, 2) if !any(isnan, @view(data.paths[:, j]))]
+    @test !isempty(valid_cols)
+
+    for s in seeds
+        found = any(norm(data.paths[:, j] .- s) <= 1e-10 for j in valid_cols)
+        @test found
+    end
+end
