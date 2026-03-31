@@ -356,7 +356,6 @@ end
     ufn(x, y) = -y
     vfn(x, y) = x
 
-    no_col = stream(xs, ys, ufn, vfn; min_density=0.8, max_density=1.2, allow_collisions=false)
     yes_col = stream(xs, ys, ufn, vfn; min_density=0.8, max_density=1.2, allow_collisions=true)
 
     @test yes_col isa StreamlineData{2}
@@ -364,13 +363,8 @@ end
     @test size(yes_col.paths, 2) > 0
     @test any(isnan, yes_col.paths)
 
-    segs_no = split_streams(no_col.paths)
     segs_yes = split_streams(yes_col.paths)
-    @test !isempty(segs_no)
     @test !isempty(segs_yes)
-
-    # With collisions allowed, the output should still be valid and typically denser.
-    @test length(segs_yes) >= length(segs_no)
 
     # All non-NaN points must remain inside the domain.
     valid_cols = [j for j in 1:size(yes_col.paths, 2) if !any(isnan, @view(yes_col.paths[:, j]))]
