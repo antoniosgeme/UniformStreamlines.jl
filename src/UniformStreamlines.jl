@@ -27,7 +27,8 @@ Both work with **Makie** (via `MakieExt`) and **Plots.jl** (via `PlotsExt`).
 | Keyword | Default | Description |
 |:--------|:--------|:------------|
 | `with_arrows` | `false` | Draw directional arrowheads along streamlines |
-| `arrows_every` | `10` | Place an arrowhead every N path vertices |
+| `arrows_spacing` | automatic | Arc-length spacing between arrows (uniform placement) |
+| `arrows_every` | `nothing` | Legacy: place an arrow every N vertices; overrides `arrows_spacing` |
 
 # Makie-specific keyword arguments
 
@@ -59,13 +60,13 @@ str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x)
 # Makie
 using CairoMakie
 streamlines(str; color=colorize(str, :norm), colormap=:viridis,
-            with_arrows=true, arrows_every=30)
+            with_arrows=true)
 
 # Plots.jl
 using Plots
 c = colorize(str, :norm)
 streamlines(str; line_z=c, color=:viridis,
-            with_arrows=true, arrows_every=30)
+            with_arrows=true)
 ```
 """
 function streamlines end

@@ -58,3 +58,19 @@ end
         sl)
     @test length(recipes) >= 2
 end
+
+@testitem "Plots recipe — default spacing arrows" tags=[:ext] setup=[PlotsHelpers] begin
+    using UniformStreamlines, RecipesBase
+    Random.seed!(113)
+
+    xs = collect(LinRange(-1, 1, 61))
+    ys = collect(LinRange(-1, 1, 61))
+    str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x; min_density=0.5, max_density=1.0)
+
+    PE = Base.get_extension(UniformStreamlines, :PlotsExt)
+    sl = PE.Streamlines((str,))
+    recipes = RecipesBase.apply_recipe(
+        Dict{Symbol, Any}(:with_arrows => true, :arrow_scale => 0.5),
+        sl)
+    @test length(recipes) >= 2
+end

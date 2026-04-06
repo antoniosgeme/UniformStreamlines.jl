@@ -118,13 +118,24 @@ streamlines(str; line_z=c, color=:viridis)
 
 ### Arrows
 
-Add directional arrows along streamlines:
+Add directional arrows along streamlines. By default, arrows are placed
+uniformly along the arc length of each streamline:
 
 ```julia
 # Plots.jl
-streamlines(str; with_arrows=true, arrows_every=20, arrow_scale=0.5)
+streamlines(str; with_arrows=true, arrow_scale=0.5)
 
 # Makie
+streamlines(str; with_arrows=true)
+```
+
+Explicit spacing control:
+
+```julia
+# Set arc-length spacing manually
+streamlines(str; with_arrows=true, arrows_spacing=0.3)
+
+# Legacy vertex-based placement (every N-th vertex)
 streamlines(str; with_arrows=true, arrows_every=20)
 ```
 
@@ -134,12 +145,12 @@ Control arrow size with `markersize` (Makie) or `arrow_scale` (Plots.jl):
 
 ```julia
 # Makie — small vs large arrows
-streamlines(str; with_arrows=true, arrows_every=20, markersize=8)   # small
-streamlines(str; with_arrows=true, arrows_every=20, markersize=20)  # large
+streamlines(str; with_arrows=true, markersize=8)   # small
+streamlines(str; with_arrows=true, markersize=20)  # large
 
 # Plots.jl
-streamlines(str; with_arrows=true, arrows_every=20, arrow_scale=0.5)  # half size
-streamlines(str; with_arrows=true, arrows_every=20, arrow_scale=2.0)  # double size
+streamlines(str; with_arrows=true, arrow_scale=0.5)  # half size
+streamlines(str; with_arrows=true, arrow_scale=2.0)  # double size
 ```
 
 ![Arrow Size Comparison](assets/arrow_sizes.png)
@@ -209,7 +220,7 @@ c3 = colorize(str3, :norm)
 
 using GLMakie
 streamlines(str3; color=c3, colormap=:magma,
-            with_arrows=true, arrows_every=25, markersize=0.12)
+            with_arrows=true, markersize=0.12)
 ```
 
 ![3-D ABC Flow](assets/3d_arrows.png)
@@ -287,7 +298,8 @@ Both forms accept the same keyword arguments (`min_density`, `max_density`, `see
 | Keyword | Default | Description |
 |:--------|:--------|:------------|
 | `with_arrows` | `false` | Show directional arrowheads |
-| `arrows_every` | `10` | Place an arrow every N vertices |
+| `arrows_spacing` | automatic | Arc-length spacing between arrows (uniform placement) |
+| `arrows_every` | `nothing` | Legacy: place an arrow every N vertices; overrides `arrows_spacing` |
 | `arrow_scale` | `1.0` | Scale factor for arrow size |
 | `line_z` | — | Per-point color values from `colorize` |
 
@@ -296,7 +308,8 @@ Both forms accept the same keyword arguments (`min_density`, `max_density`, `see
 | Keyword | Default | Description |
 |:--------|:--------|:------------|
 | `with_arrows` | `false` | Show directional arrowheads |
-| `arrows_every` | `10` | Place an arrow every N vertices |
+| `arrows_spacing` | automatic | Arc-length spacing between arrows (uniform placement) |
+| `arrows_every` | `nothing` | Legacy: place an arrow every N vertices; overrides `arrows_spacing` |
 | `markersize` | `12` (2-D) / `0.08` (3-D) | Size of arrowhead markers |
 | `color` | `:blue` | Line / arrowhead color or per-point vector from `colorize` |
 | `linewidth` | inherited | Width of streamlines |

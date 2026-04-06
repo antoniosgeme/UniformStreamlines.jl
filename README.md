@@ -177,7 +177,7 @@ str3 = evenstream(xs, ys, zs,
               min_density=2, max_density=4)
 c3 = colorize(str3, :norm)
 streamlines(str3; color=c3, colormap=:magma,
-            with_arrows=true, arrows_every=25, markersize=0.12)
+            with_arrows=true, markersize=0.12)
 ```
 
 <p align="center">

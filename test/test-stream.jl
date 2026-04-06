@@ -689,3 +689,97 @@ end
     @test data isa StreamlineData{2}
     @test size(data.paths, 2) > 0
 end
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# streamarrows — arc-length (uniform) mode
+# ──────────────────────────────────────────────────────────────────────────────
+
+@testitem "streamarrows spacing — uniform arc-length placement 2D" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    using LinearAlgebra: norm
+    Random.seed!(93)
+
+    xs = collect(LinRange(-2, 2, 101))
+    ys = collect(LinRange(-2, 2, 101))
+    # Circular field → closed-ish streamlines with known radius
+    data = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x; min_density=0.8, max_density=1.5)
+
+    arrows = streamarrows(data; spacing=0.5, scale=0.1)
+    @test arrows isa UniformStreamlines.ArrowData{2}
+    @test size(arrows.points, 1) == 2
+    @test size(arrows.vectors, 1) == 2
+    @test size(arrows.points, 2) == size(arrows.vectors, 2) == length(arrows.speeds)
+    @test length(arrows.indices) == length(arrows.speeds)
+    @test all(isfinite, arrows.speeds)
+    @test all(arrows.speeds .>= 0)
+
+    # All arrow vectors should have magnitude == scale
+    if size(arrows.vectors, 2) > 0
+        mags = [norm(@view(arrows.vectors[:, j])) for j in 1:size(arrows.vectors, 2)]
+        @test all(isapprox.(mags, 0.1; atol=1e-10))
+    end
+end
+
+@testitem "streamarrows spacing — 3D" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    using LinearAlgebra: norm
+    Random.seed!(94)
+
+    xs = collect(LinRange(-1, 1, 25))
+    ys = collect(LinRange(-1, 1, 21))
+    zs = collect(LinRange(-1, 1, 17))
+    data = evenstream(xs, ys, zs, (x,y,z)->1.0, (x,y,z)->0.0, (x,y,z)->z;
+        min_density=0.4, max_density=0.8)
+
+    arrows = streamarrows(data; spacing=0.4, scale=0.05)
+    @test arrows isa UniformStreamlines.ArrowData{3}
+    @test size(arrows.points, 1) == 3
+    @test size(arrows.points, 2) > 0
+    @test all(isfinite, arrows.speeds)
+end
+
+@testitem "streamarrows spacing — huge spacing gives no arrows" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(95)
+
+    xs = collect(LinRange(-1, 1, 41))
+    ys = collect(LinRange(-1, 1, 41))
+    data = evenstream(xs, ys, (x,y)->-y, (x,y)->x; min_density=0.5, max_density=1.0)
+
+    arrows = streamarrows(data; spacing=1000.0, scale=0.1)
+    @test size(arrows.points, 2) == 0
+    @test isempty(arrows.speeds)
+end
+
+@testitem "streamarrows spacing — arrows are uniformly spaced" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    using LinearAlgebra: norm
+    Random.seed!(96)
+
+    xs = collect(LinRange(-2, 2, 201))
+    ys = collect(LinRange(-2, 2, 201))
+    # Uniform horizontal flow → straight streamlines with constant spacing
+    data = evenstream(xs, ys, (x,y) -> 1.0, (x,y) -> 0.0; min_density=0.5, max_density=1.0)
+
+    spacing_val = 0.3
+    arrows = streamarrows(data; spacing=spacing_val, scale=0.05)
+
+    # Group arrow points by their y-coordinate (each streamline is a horizontal line)
+    if size(arrows.points, 2) > 1
+        # For this uniform flow, all arrows on the same streamline share the same y
+        ys_arr = arrows.points[2, :]
+        # Find groups by rounding y
+        unique_y = unique(round.(ys_arr; digits=6))
+        for yval in unique_y
+            mask = findall(y -> isapprox(y, yval; atol=1e-5), ys_arr)
+            length(mask) < 2 && continue
+            xs_group = sort(arrows.points[1, mask])
+            diffs = diff(xs_group)
+            # All inter-arrow distances should be approximately equal to spacing_val
+            for d in diffs
+                @test isapprox(d, spacing_val; atol=0.02)
+            end
+        end
+    end
+end

@@ -34,7 +34,8 @@ Makie.convert_arguments(::Makie.ArrowLike, arr::ArrowData{3}) =
 
 @recipe Streamlines (object,) begin
     with_arrows = false
-    arrows_every = 10
+    arrows_spacing = Makie.automatic
+    arrows_every = nothing
     markersize = @inherit markersize
     color = :blue
     linewidth = @inherit linewidth
@@ -139,7 +140,14 @@ function Makie.plot!(plot::Streamlines{<:Tuple{StreamlineData{2}}})
     lines!(plot, plot.attributes, str)
 
     if plot[:with_arrows][]
-        arr = streamarrows(str; every = plot[:arrows_every][])
+        ae = plot[:arrows_every][]
+        if ae !== nothing
+            arr = streamarrows(str; every=ae)
+        else
+            as_val = plot[:arrows_spacing][]
+            sp = as_val === Makie.automatic ? norm(str.upper .- str.lower) / 20 : Float64(as_val)
+            arr = streamarrows(str; spacing=sp)
+        end
         ac = arrow_color(plot[:color][], arr)
         cr = resolved_colorrange(plot)
         cm = plot[:colormap][]
@@ -162,7 +170,14 @@ function Makie.plot!(plot::Streamlines{<:Tuple{StreamlineData{3}}})
     lines!(plot, plot.attributes, str)
 
     if plot[:with_arrows][]
-        arr = streamarrows(str; every = plot[:arrows_every][])
+        ae = plot[:arrows_every][]
+        if ae !== nothing
+            arr = streamarrows(str; every=ae)
+        else
+            as_val = plot[:arrows_spacing][]
+            sp = as_val === Makie.automatic ? norm(str.upper .- str.lower) / 20 : Float64(as_val)
+            arr = streamarrows(str; spacing=sp)
+        end
         ac = arrow_color(plot[:color][], arr)
         cr = resolved_colorrange(plot)
         cm = plot[:colormap][]

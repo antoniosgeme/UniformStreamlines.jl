@@ -212,14 +212,23 @@ resolve_color_fn(f::Function) = f
 # ──────────────────────────────────────────────────────────────────────────────
 
 """
-    streamarrows(data::StreamlineData{D}; every=10, scale=1.0) -> ArrowData{D}
+    streamarrows(data::StreamlineData{D}; every=10, spacing=nothing, scale=1.0) -> ArrowData{D}
 
-Extract arrow glyphs from a `StreamlineData` result, placed every `every`
-steps along each streamline segment.
+Extract arrow glyphs from a `StreamlineData` result.
+
+Arrows can be placed in two modes:
+
+1. **Vertex mode** (default) — an arrow every `every` path vertices.
+   Fast, but non-uniform when vertex spacing varies.
+2. **Arc-length mode** — an arrow every `spacing` units of arc length.
+   Set `spacing` to a positive number to enable uniform placement.
+   When `spacing` is given, `every` is ignored.
 
 # Keyword arguments
-- `every  :: Int   = 10`   — place an arrow every this many path vertices.
-- `scale  :: Real  = 1.0`  — length factor applied to each unit-tangent arrow
+- `every    :: Int   = 10`      — (vertex mode) place an arrow every this many path vertices.
+- `spacing  :: Real  = nothing` — (arc-length mode) place an arrow every this many units of
+  arc length along each streamline. Overrides `every` when set.
+- `scale    :: Real  = 1.0`     — length factor applied to each unit-tangent arrow
   vector; pass this directly to your quiver/arrow plotting call.
 
 # Returns
@@ -227,23 +236,39 @@ An [`ArrowData{D}`](@ref) with fields:
 - `points`  — `D × N` base positions.
 - `vectors` — `D × N` arrow vectors (unit tangent × `scale`).
 - `speeds`  — `N`-vector of `‖velocity‖` at each arrow, for color-mapping.
+- `indices` — column indices into the original `StreamlineData.paths` matrix
+  (nearest vertex to each arrow position).
 
-# Example
+# Examples
 ```julia
+# Vertex-based (legacy)
 arrows = streamarrows(result; every=15, scale=0.05)
+
+# Uniform arc-length spacing
+arrows = streamarrows(result; spacing=0.3, scale=0.05)
 ```
 """
-function streamarrows(data::StreamlineData{D}; every::Int=10, scale::Real=1.0) where D
+function streamarrows(data::StreamlineData{D}; every::Int=10, spacing::Union{Nothing,Real}=nothing, scale::Real=1.0) where D
+    if spacing !== nothing
+        return _streamarrows_arclength(data, Float64(spacing), Float64(scale))
+    else
+        return _streamarrows_vertex(data, every, Float64(scale))
+    end
+end
+
+# ── Vertex-based placement (original algorithm) ──────────────────────────────
+
+function _streamarrows_vertex(data::StreamlineData{D}, every::Int, scale::Float64) where D
     paths  = data.paths
     field  = data.field
     N      = size(paths, 2)
 
-    pts    = Vector{Float64}[]   # will hold D-vectors
+    pts    = Vector{Float64}[]
     vecs   = Vector{Float64}[]
     speeds = Float64[]
     idxs   = Int[]
 
-    seg_idx = 0   # position within the current segment
+    seg_idx = 0
     for i in 1:N
         p = paths[:, i]
         if any(isnan, p)
@@ -252,7 +277,6 @@ function streamarrows(data::StreamlineData{D}; every::Int=10, scale::Real=1.0) w
         end
         seg_idx += 1
 
-        # Need a left and right neighbour, both non-NaN.
         if seg_idx > 1 && i < N &&
            !any(isnan, paths[:, i-1]) && 
            !any(isnan, paths[:, i+1]) &&
@@ -264,10 +288,99 @@ function streamarrows(data::StreamlineData{D}; every::Int=10, scale::Real=1.0) w
             push!(vecs, tangent .* (scale / n))
             push!(speeds, norm(field(p)))
             push!(idxs, i)
-            
         end
     end
 
+    return _pack_arrowdata(Val(D), pts, vecs, speeds, idxs)
+end
+
+# ── Arc-length-based placement ───────────────────────────────────────────────
+
+function _streamarrows_arclength(data::StreamlineData{D}, spacing::Float64, scale::Float64) where D
+    paths = data.paths
+    field = data.field
+    N     = size(paths, 2)
+
+    pts    = Vector{Float64}[]
+    vecs   = Vector{Float64}[]
+    speeds = Float64[]
+    idxs   = Int[]
+
+    # Collect segments (runs of non-NaN columns)
+    seg_start = 0
+    for i in 1:N+1
+        is_nan = i > N || any(isnan, @view(paths[:, i]))
+        if is_nan
+            if seg_start > 0
+                _arclength_segment!(pts, vecs, speeds, idxs,
+                                    paths, field, seg_start, i - 1, spacing, scale)
+                seg_start = 0
+            end
+        else
+            if seg_start == 0
+                seg_start = i
+            end
+        end
+    end
+
+    return _pack_arrowdata(Val(D), pts, vecs, speeds, idxs)
+end
+
+function _arclength_segment!(pts, vecs, speeds, idxs,
+                             paths::Matrix{Float64}, field,
+                             i0::Int, i1::Int, spacing::Float64, scale::Float64)
+    n_seg = i1 - i0 + 1
+    n_seg < 2 && return  # need at least 2 points for a tangent
+
+    # Compute cumulative arc length
+    cumlen = Vector{Float64}(undef, n_seg)
+    cumlen[1] = 0.0
+    for k in 2:n_seg
+        cumlen[k] = cumlen[k-1] + norm(@view(paths[:, i0 + k - 1]) .- @view(paths[:, i0 + k - 2]))
+    end
+
+    total = cumlen[end]
+    total <= 0 && return
+
+    # Center arrows: offset so they're symmetric about the midpoint
+    n_arrows = floor(Int, total / spacing)
+    n_arrows < 1 && return
+    offset = (total - n_arrows * spacing) / 2 + spacing / 2
+
+    for a in 0:n_arrows-1
+        s_target = offset + a * spacing
+
+        # Binary search for the segment containing s_target
+        lo = searchsortedlast(cumlen, s_target)
+        lo = clamp(lo, 1, n_seg - 1)
+        hi = lo + 1
+
+        # Interpolation fraction within edge [lo, hi]
+        ds = cumlen[hi] - cumlen[lo]
+        t = ds > 0 ? (s_target - cumlen[lo]) / ds : 0.0
+
+        # Interpolated position
+        p = (1 - t) .* @view(paths[:, i0 + lo - 1]) .+ t .* @view(paths[:, i0 + hi - 1])
+
+        # Tangent from finite difference of neighbors
+        # Use lo/hi for tangent (central difference when possible)
+        tl = max(lo - 1, 1)
+        th = min(hi + 1, n_seg)
+        tangent = @view(paths[:, i0 + th - 1]) .- @view(paths[:, i0 + tl - 1])
+        tn = norm(tangent)
+        tn <= 0 && continue
+
+        push!(pts, collect(p))
+        push!(vecs, collect(tangent .* (scale / tn)))
+        push!(speeds, norm(field(p)))
+        # Nearest vertex index in the original paths matrix
+        push!(idxs, t < 0.5 ? i0 + lo - 1 : i0 + hi - 1)
+    end
+end
+
+# ── Common packing helper ────────────────────────────────────────────────────
+
+function _pack_arrowdata(::Val{D}, pts, vecs, speeds, idxs) where D
     M = length(pts)
     if M == 0
         return ArrowData{D}(Matrix{Float64}(undef, D, 0),
@@ -275,13 +388,11 @@ function streamarrows(data::StreamlineData{D}; every::Int=10, scale::Real=1.0) w
                             Float64[],
                             Int[])
     end
-
     point_mat = Matrix{Float64}(undef, D, M)
     vec_mat   = Matrix{Float64}(undef, D, M)
     for j in 1:M
         point_mat[:, j] = pts[j]
         vec_mat[:,   j] = vecs[j]
     end
-
     return ArrowData{D}(point_mat, vec_mat, speeds, idxs)
 end

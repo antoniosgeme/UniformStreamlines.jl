@@ -33,6 +33,30 @@ end
     @test fig isa Makie.FigureAxisPlot
 end
 
+@testitem "Makie 2D streamlines — default spacing arrows" tags=[:ext] setup=[MakieHelpers] begin
+    using UniformStreamlines, CairoMakie
+    Random.seed!(108)
+
+    xs = collect(LinRange(-1, 1, 61))
+    ys = collect(LinRange(-1, 1, 61))
+    str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x; min_density=0.5, max_density=1.0)
+
+    fig = streamlines(str; with_arrows=true)
+    @test fig isa Makie.FigureAxisPlot
+end
+
+@testitem "Makie 2D streamlines — explicit arrows_spacing" tags=[:ext] setup=[MakieHelpers] begin
+    using UniformStreamlines, CairoMakie
+    Random.seed!(109)
+
+    xs = collect(LinRange(-1, 1, 61))
+    ys = collect(LinRange(-1, 1, 61))
+    str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x; min_density=0.5, max_density=1.0)
+
+    fig = streamlines(str; with_arrows=true, arrows_spacing=0.3)
+    @test fig isa Makie.FigureAxisPlot
+end
+
 @testitem "Makie 2D streamlines! — bang variant" tags=[:ext] setup=[MakieHelpers] begin
     using UniformStreamlines, CairoMakie
     Random.seed!(102)

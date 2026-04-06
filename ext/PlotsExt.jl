@@ -4,6 +4,7 @@ using UniformStreamlines
 using RecipesBase
 import UniformStreamlines: streamlines, streamlines!
 using UniformStreamlines: StreamlineData, ArrowData, streamarrows, colorize
+using LinearAlgebra: norm
 
 # ── 2-D Streamlines ──────────────────────────────────────────────────────────
 
@@ -12,9 +13,10 @@ using UniformStreamlines: StreamlineData, ArrowData, streamarrows, colorize
 @recipe function f(sl::Streamlines)
     str = sl.args[1]::StreamlineData{2}
 
-    with_arrows  = pop!(plotattributes, :with_arrows, false)
-    arrows_every = pop!(plotattributes, :arrows_every, 10)
-    arrow_scale  = pop!(plotattributes, :arrow_scale, 1.0)
+    with_arrows     = pop!(plotattributes, :with_arrows, false)
+    arrows_spacing  = pop!(plotattributes, :arrows_spacing, :auto)
+    arrows_every    = pop!(plotattributes, :arrows_every, nothing)
+    arrow_scale     = pop!(plotattributes, :arrow_scale, 1.0)
 
     has_map = haskey(plotattributes, :line_z) && plotattributes[:line_z] !== nothing
     col     = get(plotattributes, :seriescolor, :blue)
@@ -36,7 +38,12 @@ using UniformStreamlines: StreamlineData, ArrowData, streamarrows, colorize
 
     # Arrowheads on top (filled triangles, no shaft)
     if with_arrows
-        arr = streamarrows(str; every=arrows_every, scale=arrow_scale)
+        if arrows_every !== nothing
+            arr = streamarrows(str; every=arrows_every, scale=arrow_scale)
+        else
+            sp = arrows_spacing === :auto ? norm(str.upper .- str.lower) / 20 : Float64(arrows_spacing)
+            arr = streamarrows(str; spacing=sp, scale=arrow_scale)
+        end
         if size(arr.points, 2) > 0
             dx = vec(arr.vectors[1, :])
             dy = vec(arr.vectors[2, :])
