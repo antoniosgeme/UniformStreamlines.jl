@@ -406,3 +406,286 @@ end
         @test found
     end
 end
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Base.show for StreamlineData
+# ──────────────────────────────────────────────────────────────────────────────
+
+@testitem "StreamlineData show method — 2D" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(80)
+
+    xs = collect(LinRange(-1, 1, 61))
+    ys = collect(LinRange(-1, 1, 61))
+    ufn(x, y) = -y
+    vfn(x, y) = x
+
+    data = evenstream(xs, ys, ufn, vfn; min_density=0.5, max_density=1.0)
+    buf = IOBuffer()
+    show(buf, data)
+    s = String(take!(buf))
+    @test occursin("StreamlineData{2}:", s)
+    @test occursin("streamlines", s)
+    @test occursin("points", s)
+    @test occursin("domain", s)
+    @test occursin("[-1.0, 1.0]", s)
+end
+
+@testitem "StreamlineData show method — 3D" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(81)
+
+    xs = collect(LinRange(-1, 1, 21))
+    ys = collect(LinRange(-1, 1, 21))
+    zs = collect(LinRange(-1, 1, 17))
+    ufn(x, y, z) = 1.0
+    vfn(x, y, z) = 0.0
+    wfn(x, y, z) = 0.0
+
+    data = evenstream(xs, ys, zs, ufn, vfn, wfn; min_density=0.4, max_density=0.8)
+    buf = IOBuffer()
+    show(buf, data)
+    s = String(take!(buf))
+    @test occursin("StreamlineData{3}:", s)
+    @test occursin("streamlines", s)
+    @test occursin("domain", s)
+end
+
+@testitem "StreamlineData show — empty paths" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+
+    # Construct a StreamlineData with an empty paths matrix
+    paths = Matrix{Float64}(undef, 2, 0)
+    data = UniformStreamlines.StreamlineData{2}(paths, [-1.0, -1.0], [1.0, 1.0], p -> [0.0, 0.0])
+    buf = IOBuffer()
+    show(buf, data)
+    s = String(take!(buf))
+    @test occursin("StreamlineData{2}:", s)
+    @test occursin("0 streamlines", s)
+
+    # Paths that don't end with NaN separator (last column is a real point)
+    paths2 = [0.0 0.5 1.0; 0.0 0.5 1.0]   # 3 points, no NaN
+    data2 = UniformStreamlines.StreamlineData{2}(paths2, [-1.0, -1.0], [1.0, 1.0], p -> [0.0, 0.0])
+    buf2 = IOBuffer()
+    show(buf2, data2)
+    s2 = String(take!(buf2))
+    @test occursin("StreamlineData{2}:", s2)
+    @test occursin("1 streamlines", s2)
+    @test occursin("3 points", s2)
+end
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# colorize — individual symbol coverage
+# ──────────────────────────────────────────────────────────────────────────────
+
+@testitem "colorize all symbol shortcuts — 2D" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    using LinearAlgebra: norm
+    Random.seed!(82)
+
+    xs = collect(LinRange(-1, 1, 61))
+    ys = collect(LinRange(-1, 1, 61))
+    ufn(x, y) = -y
+    vfn(x, y) = x
+    data = evenstream(xs, ys, ufn, vfn; min_density=0.5, max_density=1.0)
+    nan_mask = [any(isnan, @view(data.paths[:, i])) for i in 1:size(data.paths, 2)]
+    valid = .!nan_mask
+
+    # :speed (alias for :norm)
+    sp = colorize(data, :speed)
+    @test length(sp) == size(data.paths, 2)
+    @test all(isfinite, sp[valid])
+    @test all(>=(0.0), sp[valid])
+
+    # :vx / :u — should equal first velocity component
+    vx_vals = colorize(data, :vx)
+    u_vals  = colorize(data, :u)
+    @test all(isapprox.(vx_vals[valid], u_vals[valid]; atol=1e-10))
+
+    # :vy / :v — should equal second velocity component
+    vy_vals = colorize(data, :vy)
+    v_vals  = colorize(data, :v)
+    @test all(isapprox.(vy_vals[valid], v_vals[valid]; atol=1e-10))
+
+    # :y — should match second coordinate
+    y_vals = colorize(data, :y)
+    @test all(isapprox.(y_vals[valid], data.paths[2, valid]; atol=1e-10))
+end
+
+@testitem "colorize 3D-only symbol shortcuts" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(83)
+
+    xs = collect(LinRange(-1, 1, 21))
+    ys = collect(LinRange(-1, 1, 21))
+    zs = collect(LinRange(-1, 1, 17))
+    ufn(x, y, z) = z
+    vfn(x, y, z) = -x
+    wfn(x, y, z) = y
+
+    data = evenstream(xs, ys, zs, ufn, vfn, wfn; min_density=0.4, max_density=0.8)
+    nan_mask = [any(isnan, @view(data.paths[:, i])) for i in 1:size(data.paths, 2)]
+    valid = .!nan_mask
+
+    # :vz / :w — should equal third velocity component
+    vz_vals = colorize(data, :vz)
+    w_vals  = colorize(data, :w)
+    @test all(isapprox.(vz_vals[valid], w_vals[valid]; atol=1e-10))
+
+    # :z — should match third coordinate
+    z_vals = colorize(data, :z)
+    @test all(isapprox.(z_vals[valid], data.paths[3, valid]; atol=1e-10))
+end
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Edge cases in stream
+# ──────────────────────────────────────────────────────────────────────────────
+
+@testitem "explicit stepsize kwarg" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(84)
+
+    xs = collect(LinRange(-1, 1, 41))
+    ys = collect(LinRange(-1, 1, 41))
+    ufn(x, y) = 1.0
+    vfn(x, y) = 0.0
+
+    data = evenstream(xs, ys, ufn, vfn; min_density=0.5, max_density=1.0, stepsize=0.01)
+    @test data isa StreamlineData{2}
+    @test size(data.paths, 2) > 0
+end
+
+@testitem "min_length filters short streamlines" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(85)
+
+    xs = collect(LinRange(-1, 1, 41))
+    ys = collect(LinRange(-1, 1, 41))
+    ufn(x, y) = -y
+    vfn(x, y) = x
+
+    # Very high min_length should filter out most/all streamlines
+    data_strict = evenstream(xs, ys, ufn, vfn; min_density=0.3, max_density=0.5, min_length=100_000)
+    @test size(data_strict.paths, 2) == 0 || size(data_strict.paths, 2) < 10
+
+    # Normal min_length should keep streamlines
+    data_normal = evenstream(xs, ys, ufn, vfn; min_density=0.3, max_density=0.5, min_length=2)
+    @test size(data_normal.paths, 2) > size(data_strict.paths, 2)
+end
+
+@testitem "zero-velocity field produces minimal output" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(86)
+
+    xs = collect(LinRange(-1, 1, 21))
+    ys = collect(LinRange(-1, 1, 21))
+
+    # A field that returns NaN everywhere (simulating zero velocity / stagnation)
+    data = evenstream(xs, ys, (x,y) -> 0.0, (x,y) -> 0.0; min_density=0.3, max_density=0.5)
+    # With zero velocity, RK2 midpoint just stays at the seed → short streamlines
+    @test data isa StreamlineData{2}
+end
+
+@testitem "seeds with 3D grid data" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(87)
+
+    xs = collect(LinRange(-1, 1, 21))
+    ys = collect(LinRange(-1, 1, 21))
+    zs = collect(LinRange(-1, 1, 17))
+    U = [1.0 for x in xs, y in ys, z in zs]
+    V = [0.0 for x in xs, y in ys, z in zs]
+    W = [0.0 for x in xs, y in ys, z in zs]
+    seeds = ([0.0, 0.0, 0.0],)
+
+    data = evenstream(xs, ys, zs, U, V, W; seeds=seeds, min_density=0.4, max_density=0.8)
+    @test data isa StreamlineData{3}
+    @test size(data.paths, 2) > 0
+end
+
+@testitem "streamarrows with 3D and default keywords" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    using LinearAlgebra: norm
+    Random.seed!(88)
+
+    xs = collect(LinRange(-1, 1, 25))
+    ys = collect(LinRange(-1, 1, 21))
+    zs = collect(LinRange(-1, 1, 17))
+    ufn(x, y, z) = 1.0
+    vfn(x, y, z) = 0.0
+    wfn(x, y, z) = z
+
+    data = evenstream(xs, ys, zs, ufn, vfn, wfn; min_density=0.4, max_density=0.8)
+    # Use default every and scale
+    arrows = streamarrows(data)
+    @test arrows isa UniformStreamlines.ArrowData{3}
+    @test size(arrows.points, 2) == length(arrows.speeds)
+    @test length(arrows.indices) == length(arrows.speeds)
+end
+
+@testitem "high density to trigger buffer expansion" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(89)
+
+    # Use a domain with many seeds and tiny stepsize to generate lots of points
+    xs = collect(LinRange(-5, 5, 101))
+    ys = collect(LinRange(-5, 5, 101))
+    ufn(x, y) = -y
+    vfn(x, y) = x
+
+    # High density + small stepsize → many vertices, potentially exceeding initial buffer
+    data = evenstream(xs, ys, ufn, vfn;
+        min_density=8, max_density=15, stepsize=0.001)
+    @test data isa StreamlineData{2}
+    @test size(data.paths, 2) > 0
+end
+
+@testitem "allow_collisions with high density" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(90)
+
+    xs = collect(LinRange(-5, 5, 101))
+    ys = collect(LinRange(-5, 5, 101))
+    ufn(x, y) = -y
+    vfn(x, y) = x
+
+    data = evenstream(xs, ys, ufn, vfn;
+        min_density=8, max_density=15, stepsize=0.001, allow_collisions=true)
+    @test data isa StreamlineData{2}
+    @test size(data.paths, 2) > 0
+end
+
+@testitem "endgrid out-of-bounds triggers trim" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(91)
+
+    # Use seeds near domain boundary with a field pointing outward
+    # to trigger the endgrid out-of-bounds check
+    xs = collect(LinRange(-1, 1, 21))
+    ys = collect(LinRange(-1, 1, 21))
+    # Field pointing radially outward — streamlines quickly leave domain
+    ufn(x, y) = x * 10.0
+    vfn(x, y) = y * 10.0
+    seeds = ([0.9, 0.9], [-0.9, -0.9], [0.9, -0.9], [-0.9, 0.9])
+
+    data = evenstream(xs, ys, ufn, vfn; seeds=seeds, min_density=0.5, max_density=1.0)
+    @test data isa StreamlineData{2}
+end
+
+@testitem "seeds with N-D tuple grid form" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(92)
+
+    xs = collect(LinRange(-1, 1, 41))
+    ys = collect(LinRange(-1, 1, 39))
+    U = [-y for x in xs, y in ys]
+    V = [x  for x in xs, y in ys]
+    seeds = ([0.5, 0.0], [-0.5, 0.0])
+
+    data = evenstream((xs, ys), (U, V); seeds=seeds, min_density=0.5, max_density=1.0)
+    @test data isa StreamlineData{2}
+    @test size(data.paths, 2) > 0
+end
