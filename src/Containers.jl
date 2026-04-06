@@ -1,7 +1,7 @@
 """
     StreamlineData{D}
 
-Holds the output of `stream`. `D` is the spatial dimension.
+Holds the output of `evenstream`. `D` is the spatial dimension.
 
 # Fields
 - `paths  :: Matrix{Float64}` — `D × N` matrix. Streamlines are stored
@@ -19,6 +19,19 @@ struct StreamlineData{D}
     lower  :: Vector{Float64}
     upper  :: Vector{Float64}
     field  :: Function
+end
+
+function Base.show(io::IO, data::StreamlineData{D}) where D
+    ncols = size(data.paths, 2)
+    nlines = count(i -> any(isnan, @view(data.paths[:, i])), 1:ncols)
+    # If the last column isn't NaN, there's one more segment
+    if ncols > 0 && !any(isnan, @view(data.paths[:, ncols]))
+        nlines += 1
+    end
+    npts = ncols - (nlines > 0 ? nlines - 1 : 0)  # subtract NaN separators
+    # Format domain
+    bounds = join(["[$(data.lower[i]), $(data.upper[i])]" for i in 1:D], " × ")
+    print(io, "StreamlineData{$D}: $nlines streamlines, $npts points, domain $bounds")
 end
 
 

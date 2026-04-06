@@ -1,11 +1,11 @@
 
 """
-    stream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,Function};       kwargs...) -> StreamlineData{D}
-    stream(axs::NTuple{D,AbstractVector}, arrs::NTuple{D,AbstractArray}; kwargs...) -> StreamlineData{D}
-    stream(xs, ys,     ufn, vfn;          kwargs...) -> StreamlineData{2}
-    stream(xs, ys,     U, V;              kwargs...) -> StreamlineData{2}
-    stream(xs, ys, zs, ufn, vfn, wfn;    kwargs...) -> StreamlineData{3}
-    stream(xs, ys, zs, U, V, W;          kwargs...) -> StreamlineData{3}
+    evenstream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,Function};       kwargs...) -> StreamlineData{D}
+    evenstream(axs::NTuple{D,AbstractVector}, arrs::NTuple{D,AbstractArray}; kwargs...) -> StreamlineData{D}
+    evenstream(xs, ys,     ufn, vfn;          kwargs...) -> StreamlineData{2}
+    evenstream(xs, ys,     U, V;              kwargs...) -> StreamlineData{2}
+    evenstream(xs, ys, zs, ufn, vfn, wfn;    kwargs...) -> StreamlineData{3}
+    evenstream(xs, ys, zs, U, V, W;          kwargs...) -> StreamlineData{3}
 
 Compute evenly-spaced streamlines via the Jobard–Lefer algorithm.
 
@@ -19,12 +19,15 @@ Compute evenly-spaced streamlines via the Jobard–Lefer algorithm.
 The 2-D/3-D flat forms are convenience wrappers around the N-D tuple form.
 
 # Keyword arguments
-- `min_density` — minimum separation between streamlines.
-- `max_density` — maximum separation.
-- `seeds` — A NTuple of vectors representing seed points.
-- `min_length` — discard streamlines shorter than this many points.
-- `allow_collisions` — Do not truncate streamlines when they intersect.
-- `stepsize` — integration step size; by default, set adaptively based on the domain size and `max_density`.
+
+| Keyword            | Default    | Description                                                                 |
+|:-------------------|:-----------|:----------------------------------------------------------------------------|
+| `min_density`      | `3`        | Seeding grid density (domain divided into `10 × min_density` cells/axis). Higher → more seed candidates → denser coverage. |
+| `max_density`      | `10`       | Collision grid density (domain divided into `10 × max_density` cells/axis). Higher → streamlines may pass closer together. |
+| `seeds`            | `nothing`  | Explicit seed points (a tuple/vector of D-vectors); overrides density grids. |
+| `min_length`       | `2`        | Discard streamlines with fewer than this many vertices.                     |
+| `allow_collisions` | `false`    | If `true`, streamlines pass through each other instead of being truncated.  |
+| `stepsize`         | adaptive   | Integration step size. By default set to `min(norm(domain) / (10 × max_density × 10), 0.05)`. |
 
 # Returns
 A [`StreamlineData{D}`](@ref). Pass to [`colorize`](@ref) and [`streamarrows`](@ref).
@@ -34,29 +37,29 @@ A [`StreamlineData{D}`](@ref). Pass to [`colorize`](@ref) and [`streamarrows`](@
 xs = LinRange(-2, 2, 200);  ys = LinRange(-2, 2, 200)
 
 # From functions (flat 2-D form)
-result = stream(xs, ys, (x,y) -> -y, (x,y) -> x)
+result = evenstream(xs, ys, (x,y) -> -y, (x,y) -> x)
 
 # From pre-computed grids (flat 2-D form)
 U = [-y for x in xs, y in ys];  V = [x for x in xs, y in ys]
-result = stream(xs, ys, U, V)
+result = evenstream(xs, ys, U, V)
 
 # N-D tuple form (any dimension)
 zs = ts = LinRange(-2, 2, 200)
-result = stream((xs, ys, zs, ts), ((x,y,z,t) -> -y, (x,y,z,t) -> x, (x,y,z,t) -> z, (x,y,z,t) -> t))
+result = evenstream((xs, ys, zs, ts), ((x,y,z,t) -> -y, (x,y,z,t) -> x, (x,y,z,t) -> z, (x,y,z,t) -> t))
 
 colors = colorize(result, :norm)
 arrows = streamarrows(result; every=15)
 ```
 """
-function stream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,Function}; kwargs...) where D
+function evenstream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,Function}; kwargs...) where D
     lower = Float64[minimum(ax) for ax in axs]
     upper = Float64[maximum(ax) for ax in axs]
     field = p -> (args = ntuple(j -> p[j], Val(D)); SVector(ntuple(i -> fns[i](args...), Val(D))))
-    paths = evenstream(Val(D), lower, upper, field; kwargs...)
+    paths = stream(Val(D), lower, upper, field; kwargs...)
     return StreamlineData{D}(paths, lower, upper, field)
 end
 
-function stream(axs::NTuple{D,AbstractVector}, arrs::NTuple{D,AbstractArray{<:Real}}; kwargs...) where D
+function evenstream(axs::NTuple{D,AbstractVector}, arrs::NTuple{D,AbstractArray{<:Real}}; kwargs...) where D
     expected = Tuple(length(ax) for ax in axs)
     for (k, A) in enumerate(arrs)
         size(A) == expected || throw(ArgumentError(
@@ -66,27 +69,27 @@ function stream(axs::NTuple{D,AbstractVector}, arrs::NTuple{D,AbstractArray{<:Re
     upper = Float64[maximum(ax) for ax in axs]
     itps  = map(A -> linear_interp(axs, A), arrs)
     field = p -> SVector(ntuple(i -> itps[i](p), Val(D)))
-    paths = evenstream(Val(D), lower, upper, field; kwargs...)
+    paths = stream(Val(D), lower, upper, field; kwargs...)
     return StreamlineData{D}(paths, lower, upper, field)
 end
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# stream — 2-D helpers
+# evenstream — 2-D helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
-function stream(xs::AbstractVector, ys::AbstractVector,
-                ufn::Function, vfn::Function; kwargs...)
+function evenstream(xs::AbstractVector, ys::AbstractVector,
+                    ufn::Function, vfn::Function; kwargs...)
     lower = [Float64(minimum(xs)), Float64(minimum(ys))]
     upper = [Float64(maximum(xs)), Float64(maximum(ys))]
     field = p -> (args = ntuple(j -> p[j], Val(2)); SVector(ufn(args...), vfn(args...)))
-    paths = evenstream(Val(2), lower, upper, field; kwargs...)
+    paths = stream(Val(2), lower, upper, field; kwargs...)
     return StreamlineData{2}(paths, lower, upper, field)
 end
 
 # 2-D, grid data
-function stream(xs::AbstractVector, ys::AbstractVector,
-                U::AbstractMatrix{<:Real}, V::AbstractMatrix{<:Real}; kwargs...)
+function evenstream(xs::AbstractVector, ys::AbstractVector,
+                    U::AbstractMatrix{<:Real}, V::AbstractMatrix{<:Real}; kwargs...)
     @assert size(U) == (length(xs), length(ys)) "U must be size (length(xs), length(ys)) = ($(length(xs)), $(length(ys))); got $(size(U))"
     @assert size(V) == size(U) "V must be same size as U"
     lower  = Float64[minimum(xs), minimum(ys)]
@@ -94,26 +97,26 @@ function stream(xs::AbstractVector, ys::AbstractVector,
     u_itp  = linear_interp((xs, ys), U)
     v_itp  = linear_interp((xs, ys), V)
     field  = p -> SVector(u_itp(p), v_itp(p))
-    paths  = evenstream(Val(2), lower, upper, field; kwargs...)
+    paths  = stream(Val(2), lower, upper, field; kwargs...)
     return StreamlineData{2}(paths, lower, upper, field)
 end
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# stream — 3-D, helpers
+# evenstream — 3-D helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
-function stream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
+function evenstream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
                     ufn::Function, vfn::Function, wfn::Function; kwargs...)
     lower = Float64[minimum(xs), minimum(ys), minimum(zs)]
     upper = Float64[maximum(xs), maximum(ys), maximum(zs)]
     field = p -> (args = ntuple(j -> p[j], Val(3)); SVector(ufn(args...), vfn(args...), wfn(args...)))
-    paths = evenstream(Val(3), lower, upper, field; kwargs...)
+    paths = stream(Val(3), lower, upper, field; kwargs...)
     return StreamlineData{3}(paths, lower, upper, field)
 end
 
 # 3-D, grid data
-function stream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
+function evenstream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
                     U::AbstractArray{<:Real,3}, V::AbstractArray{<:Real,3},
                     W::AbstractArray{<:Real,3}; kwargs...)
     expected = (length(xs), length(ys), length(zs))
@@ -126,7 +129,7 @@ function stream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
     v_itp  = linear_interp((xs, ys, zs), V)
     w_itp  = linear_interp((xs, ys, zs), W)
     field  = p -> [u_itp(p), v_itp(p), w_itp(p)]
-    paths  = evenstream(Val(3), lower, upper, field; kwargs...)
+    paths  = stream(Val(3), lower, upper, field; kwargs...)
     return StreamlineData{3}(paths, lower, upper, field)
 end
 
@@ -152,15 +155,15 @@ where `pos` and `vel` are both length-D vectors.
 
 **Built-in symbols** (shortcuts):
 
-| Symbol      | Equivalent function                        |
-|:------------|:-------------------------------------------|
-| `:norm`    | `(p, v) -> norm(v)`                        |
-| `:vx`       | `(p, v) -> v[1]`                           |
-| `:vy`       | `(p, v) -> v[2]`                           |
-| `:vz`       | `(p, v) -> v[3]`  (3-D only)               |
-| `:x`        | `(p, v) -> p[1]`                           |
-| `:y`        | `(p, v) -> p[2]`                           |
-| `:z`        | `(p, v) -> p[3]`  (3-D only)               |
+| Symbol          | Equivalent function                        |
+|:----------------|:-------------------------------------------|
+| `:norm`/`:speed`| `(p, v) -> norm(v)`                        |
+| `:vx` / `:u`    | `(p, v) -> v[1]`                           |
+| `:vy` / `:v`    | `(p, v) -> v[2]`                           |
+| `:vz` / `:w`    | `(p, v) -> v[3]`  (3-D only)               |
+| `:x`             | `(p, v) -> p[1]`                           |
+| `:y`             | `(p, v) -> p[2]`                           |
+| `:z`             | `(p, v) -> p[3]`  (3-D only)               |
 
 # Examples
 ```julia
@@ -188,14 +191,18 @@ end
 
 # Resolve symbol shortcuts to (pos, vel) -> Real functions.
 function resolve_color_fn(f::Symbol)
-    f === :norm && return (p, v) -> norm(v)
+    f === :norm  && return (p, v) -> norm(v)
+    f === :speed && return (p, v) -> norm(v)
     f === :vx    && return (p, v) -> v[1]
+    f === :u     && return (p, v) -> v[1]
     f === :vy    && return (p, v) -> v[2]
+    f === :v     && return (p, v) -> v[2]
     f === :vz    && return (p, v) -> v[3]
+    f === :w     && return (p, v) -> v[3]
     f === :x     && return (p, v) -> p[1]
     f === :y     && return (p, v) -> p[2]
     f === :z     && return (p, v) -> p[3]
-    throw(ArgumentError("Unknown color symbol :$f. Valid options: :norm, :vx, :vy, :vz, :x, :y, :z"))
+    throw(ArgumentError("Unknown color symbol :$f. Valid options: :norm, :speed, :vx, :u, :vy, :v, :vz, :w, :x, :y, :z"))
 end
 resolve_color_fn(f::Function) = f
 

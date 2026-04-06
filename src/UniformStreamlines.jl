@@ -9,10 +9,9 @@ include("Containers.jl")
 include("Tracer.jl")  
 include("Stream.jl")  
 
-export stream                                         # low-level core
 export evenstream                                     # high-level entry point
 export colorize, streamarrows                         # post-processing
-export StreamlineData, ArrowData                      # result types
+export StreamlineData                                 # result types
 
 """
     streamlines(str::StreamlineData; kwargs...)
@@ -55,7 +54,7 @@ using UniformStreamlines
 
 xs = LinRange(-2, 2, 200)
 ys = LinRange(-2, 2, 200)
-str = stream(xs, ys, (x, y) -> -y, (x, y) -> x)
+str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x)
 
 # Makie
 using CairoMakie

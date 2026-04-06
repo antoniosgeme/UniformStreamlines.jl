@@ -34,7 +34,7 @@ U = collect(real.(w)')
 V = collect(-imag.(w)')
 
 # Compute streamlines
-str = stream(x, y, U, V; min_density=3, max_density=15)
+str = evenstream(x, y, U, V; min_density=3, max_density=15)
 
 # Color by pressure: Cp = 1 - (u² + v²)
 c = colorize(str, (p, v) -> 1 - (v[1]^2 + v[2]^2))

@@ -61,10 +61,11 @@ end
 
 
 """
-    evenstream(Val(D), lower, upper, u; kwargs...) -> Matrix{Float64}
+    stream(Val(D), lower, upper, u; kwargs...) -> Matrix{Float64}
 
-Compute evenly-spaced streamlines of the vector field `u` over the axis-aligned
-box `[lower, upper]`. Works in any dimension D (D=2 or D=3 are typical).
+Low-level core: compute evenly-spaced streamlines of the vector field `u` over
+the axis-aligned box `[lower, upper]`. Works in any dimension D (D=2 or D=3 are
+typical).
 
 `u` must be a function `u(p::AbstractVector) -> AbstractVector` returning the
 velocity at position `p`.
@@ -74,15 +75,16 @@ A `D × N` matrix. Individual streamlines are concatenated column-by-column,
 separated by columns of `NaN`.
 
 # Keyword arguments
-| Keyword        | Default | Description                                      |
-|:---------------|:--------|:-------------------------------------------------|
-| `min_density`  | `3`     | Coarse grid density for seeding start points     |
-| `max_density`  | `10`    | Fine grid density for collision detection        |
-| `allow_collisions`     | `false` | If `true`, lines pass through each other         |
-| `seeds`        | `nothing` | Explicit seed points; overrides density grids  |
-| `min_length`   | `2`     | Discard streamlines with fewer than this many points |
+| Keyword            | Default    | Description                                                                 |
+|:-------------------|:-----------|:----------------------------------------------------------------------------|
+| `min_density`      | `3`        | Seeding grid density (domain divided into `10 × min_density` cells/axis). Higher → more seed candidates → denser coverage. |
+| `max_density`      | `10`       | Collision grid density (domain divided into `10 × max_density` cells/axis). Higher → streamlines may pass closer together. |
+| `allow_collisions` | `false`    | If `true`, streamlines pass through each other instead of being truncated.  |
+| `seeds`            | `nothing`  | Explicit seed points; overrides density grids.                              |
+| `min_length`       | `2`        | Discard streamlines with fewer than this many vertices.                     |
+| `stepsize`         | adaptive   | Integration step size. By default set to `min(norm(domain) / (10 × max_density × 10), 0.05)`. |
 """
-function evenstream(::Val{D}, lower::Vector{<:Real}, upper::Vector{<:Real}, u::F;
+function stream(::Val{D}, lower::Vector{<:Real}, upper::Vector{<:Real}, u::F;
                 min_density = 3,
                 max_density = 10,
                 allow_collisions::Bool = false,

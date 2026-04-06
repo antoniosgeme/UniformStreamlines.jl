@@ -3,6 +3,7 @@ module MakieExt
 using UniformStreamlines
 using LinearAlgebra
 import UniformStreamlines: streamlines, streamlines!
+using UniformStreamlines: ArrowData
 using Makie
 
 Makie.convert_arguments(P::PointBased, str::StreamlineData{2}) =

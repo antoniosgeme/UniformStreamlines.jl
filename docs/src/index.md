@@ -23,7 +23,7 @@ using UniformStreamlines
 xs = LinRange(-2, 2, 200)
 ys = LinRange(-2, 2, 200)
 
-str = stream(xs, ys, (x, y) -> -y, (x, y) -> x)
+str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x)
 ```
 
 Plot with Plots.jl:
@@ -50,12 +50,12 @@ Pass velocity components as functions or pre-computed arrays:
 
 ```julia
 # Functions
-str = stream(xs, ys, (x, y) -> -y, (x, y) -> x)
+str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x)
 
 # Matrices (U[i,j] is the x-velocity at (xs[i], ys[j]))
 U = [-y for x in xs, y in ys]
 V = [ x for x in xs, y in ys]
-str = stream(xs, ys, U, V)
+str = evenstream(xs, ys, U, V)
 ```
 
 ### Density Control
@@ -67,11 +67,11 @@ xs = LinRange(-3, 3, 200)
 ys = LinRange(-3, 3, 200)
 
 # Sparse
-str_sparse = stream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
+str_sparse = evenstream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
                     min_density=2, max_density=4)
 
 # Dense
-str_dense = stream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
+str_dense = evenstream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
                    min_density=5, max_density=15)
 ```
 
@@ -95,11 +95,11 @@ The ratio `max_density / min_density` determines how much room there is between 
 Use `colorize` to compute a per-point scalar for color-mapping:
 
 ```julia
-str = stream(xs, ys, (x, y) -> sin(π*x) * cos(π*y), (x, y) -> 0.2y)
+str = evenstream(xs, ys, (x, y) -> sin(π*x) * cos(π*y), (x, y) -> 0.2y)
 c = colorize(str, :norm)
 ```
 
-Built-in color symbols: `:norm`, `:vx`, `:vy`, `:vz`, `:x`, `:y`, `:z`.
+Built-in color symbols: `:norm` (or `:speed`), `:vx` (or `:u`), `:vy` (or `:v`), `:vz` (or `:w`), `:x`, `:y`, `:z`.
 
 You can also pass a custom function `(position, velocity) -> scalar`:
 
@@ -152,7 +152,7 @@ Return `NaN` from velocity functions to mask out regions of the domain. Streamli
 u(x, y) = (x+1)^2 + y^2 < 1 ? NaN : x + y
 v(x, y) = (x+1)^2 + y^2 < 1 ? NaN : x - y
 
-str = stream(xs, ys, u, v)
+str = evenstream(xs, ys, u, v)
 ```
 
 ![NaN Masking — Circular Obstacle](assets/nan_masking.png)
@@ -164,7 +164,7 @@ Provide explicit seed points to control where streamlines originate:
 ```julia
 seed_x = [-1.0, 0.0, 1.0]
 seed_y = [ 0.0, 0.0, 0.0]
-str = stream(xs, ys, (x, y) -> x + y, (x, y) -> x - y; seeds=(seed_x, seed_y))
+str = evenstream(xs, ys, (x, y) -> x + y, (x, y) -> x - y; seeds=(seed_x, seed_y))
 ```
 
 ![Seed Points](assets/seeds.png)
@@ -174,7 +174,7 @@ str = stream(xs, ys, (x, y) -> x + y, (x, y) -> x - y; seeds=(seed_x, seed_y))
 By default, streamlines are truncated when they approach an existing streamline. Set `allow_collisions=true` to let them pass through each other:
 
 ```julia
-str = stream(xs, ys, (x, y) -> -y / (x^2 + y^2 + 0.1),
+str = evenstream(xs, ys, (x, y) -> -y / (x^2 + y^2 + 0.1),
                      (x, y) ->  x / (x^2 + y^2 + 0.1);
              allow_collisions=true)
 ```
@@ -190,7 +190,7 @@ xs = LinRange(-2, 2, 50)
 ys = LinRange(-2, 2, 50)
 zs = LinRange(-2, 2, 50)
 
-str3 = stream(xs, ys, zs,
+str3 = evenstream(xs, ys, zs,
               (x, y, z) -> -y,
               (x, y, z) ->  x,
               (x, y, z) ->  0.3z)
@@ -200,7 +200,7 @@ A more interesting example — the Arnold–Beltrami–Childress (ABC) flow with
 
 ```julia
 A, B, C = 1.0, √2, √3
-str3 = stream(xs, ys, zs,
+str3 = evenstream(xs, ys, zs,
               (x, y, z) -> A * sin(z) + C * cos(y),
               (x, y, z) -> B * sin(x) + A * cos(z),
               (x, y, z) -> C * sin(y) + B * cos(x);
@@ -221,43 +221,43 @@ For arbitrary dimensions, use the tuple form:
 ```julia
 axs = (LinRange(-2, 2, 50), LinRange(-2, 2, 50), LinRange(-2, 2, 50), LinRange(-2, 2, 50))
 fns = ((x, y, z, t) -> -y, (x, y, z, t) -> x, (x, y, z, t) -> z, (x, y, z, t) -> -t)
-str4 = stream(axs, fns)
+str4 = evenstream(axs, fns)
 ```
 
 ### Calling Conventions
 
-`stream` supports two equivalent calling styles:
+`evenstream` supports two equivalent calling styles:
 
 **Flat form** — pass axes and velocity components as separate positional arguments. This is the most convenient syntax for 2-D and 3-D fields:
 
 ```julia
 # 2-D with functions
-str = stream(xs, ys, (x, y) -> -y, (x, y) -> x)
+str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x)
 
 # 2-D with matrices
-str = stream(xs, ys, U, V)
+str = evenstream(xs, ys, U, V)
 
 # 3-D with functions
-str = stream(xs, ys, zs, (x,y,z) -> -y, (x,y,z) -> x, (x,y,z) -> 0.3z)
+str = evenstream(xs, ys, zs, (x,y,z) -> -y, (x,y,z) -> x, (x,y,z) -> 0.3z)
 
 # 3-D with matrices
-str = stream(xs, ys, zs, U, V, W)
+str = evenstream(xs, ys, zs, U, V, W)
 ```
 
 **Tuple form** — pass axes as a tuple and velocity components as a tuple. This is the general N-D interface, but works in any dimension:
 
 ```julia
 # 2-D (tuple form)
-str = stream((xs, ys), ((x,y) -> -y, (x,y) -> x))
+str = evenstream((xs, ys), ((x,y) -> -y, (x,y) -> x))
 
 # 3-D (tuple form)
-str = stream((xs, ys, zs), ((x,y,z) -> -y, (x,y,z) -> x, (x,y,z) -> 0.3z))
+str = evenstream((xs, ys, zs), ((x,y,z) -> -y, (x,y,z) -> x, (x,y,z) -> 0.3z))
 
 # 4-D
-str = stream((xs, ys, zs, ts), (f1, f2, f3, f4))
+str = evenstream((xs, ys, zs, ts), (f1, f2, f3, f4))
 
 # With pre-computed arrays
-str = stream((xs, ys), (U, V))
+str = evenstream((xs, ys), (U, V))
 ```
 
 Both forms accept the same keyword arguments (`min_density`, `max_density`, `seeds`, `allow_collisions`, etc.). The flat form is simply a convenience wrapper that forwards to the tuple form internally.
@@ -266,21 +266,21 @@ Both forms accept the same keyword arguments (`min_density`, `max_density`, `see
 
 | Function | Description |
 |:---------|:------------|
-| `stream` | Compute evenly-spaced streamlines |
+| `evenstream` | Compute evenly-spaced streamlines |
 | `colorize` | Compute per-point color values |
 | `streamarrows` | Extract arrow glyphs for visualization |
 | `streamlines` / `streamlines!` | Plot recipe (Plots.jl or Makie) |
 
-### Keyword arguments to `stream`
+### Keyword arguments to `evenstream`
 
 | Keyword | Default | Description |
 |:--------|:--------|:------------|
-| `min_density` | `3` | Coarse grid density for seeding |
-| `max_density` | `10` | Fine grid density for collision detection |
-| `seeds` | `nothing` | Explicit seed points |
-| `min_length` | `2` | Discard streamlines shorter than this |
+| `min_density` | `3` | Seeding grid density (`10 × min_density` cells/axis). Higher → more seed candidates → denser coverage. |
+| `max_density` | `10` | Collision grid density (`10 × max_density` cells/axis). Higher → streamlines may pass closer together. |
+| `seeds` | `nothing` | Explicit seed points (tuple/vector of D-vectors) |
+| `min_length` | `2` | Discard streamlines with fewer than this many vertices |
 | `allow_collisions` | `false` | Allow streamlines to cross each other |
-| `stepsize` | adaptive | Integration step size |
+| `stepsize` | adaptive | Integration step size; defaults to `min(norm(domain) / (10 × max_density × 10), 0.05)` |
 
 ### Keyword arguments for Plots.jl recipe
 

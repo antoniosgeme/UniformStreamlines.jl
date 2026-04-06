@@ -35,7 +35,7 @@ end
     ufn(x, y) = 1.0
     vfn(x, y) = 0.0
 
-    data = stream(xs, ys, ufn, vfn; min_density=0.5, max_density=1.0)
+    data = evenstream(xs, ys, ufn, vfn; min_density=0.5, max_density=1.0)
     @test data isa StreamlineData{2}
     @test data.lower == [-1.0, -1.0]
     @test data.upper == [1.0, 1.0]
@@ -62,7 +62,7 @@ end
     U = [-y for x in xs, y in ys]
     V = [x for x in xs, y in ys]
 
-    data = stream(xs, ys, U, V; min_density=0.5, max_density=1.0)
+    data = evenstream(xs, ys, U, V; min_density=0.5, max_density=1.0)
     @test data isa StreamlineData{2}
     @test size(data.paths, 1) == 2
 
@@ -74,8 +74,8 @@ end
 
     # Mismatched array sizes should throw
     badU = zeros(length(xs), length(ys) + 1)
-    @test_throws AssertionError stream(xs, ys, badU, V)
-    @test_throws AssertionError stream(xs, ys, U, badU)
+    @test_throws AssertionError evenstream(xs, ys, badU, V)
+    @test_throws AssertionError evenstream(xs, ys, U, badU)
 end
 
 
@@ -92,7 +92,7 @@ end
     ufn(x, y) = -y
     vfn(x, y) = x
 
-    data = stream((xs, ys), (ufn, vfn); min_density=0.5, max_density=1.0)
+    data = evenstream((xs, ys), (ufn, vfn); min_density=0.5, max_density=1.0)
     @test data isa StreamlineData{2}
     @test data.lower == [-1.0, -1.0]
     @test data.upper == [1.0, 1.0]
@@ -109,7 +109,7 @@ end
     U = [-y for x in xs, y in ys]
     V = [x for x in xs, y in ys]
 
-    data = stream((xs, ys), (U, V); min_density=0.5, max_density=1.0)
+    data = evenstream((xs, ys), (U, V); min_density=0.5, max_density=1.0)
     @test data isa StreamlineData{2}
     @test size(data.paths, 1) == 2
 
@@ -120,8 +120,8 @@ end
 
     # N-D grid form throws ArgumentError for mismatched sizes
     badU = zeros(length(xs), length(ys) + 1)
-    @test_throws ArgumentError stream((xs, ys), (badU, V))
-    @test_throws ArgumentError stream((xs, ys), (U, badU))
+    @test_throws ArgumentError evenstream((xs, ys), (badU, V))
+    @test_throws ArgumentError evenstream((xs, ys), (U, badU))
 end
 
 
@@ -139,7 +139,7 @@ end
     vfn(x, y) = x
     seeds = ([0.65, 0.0],)
 
-    data = stream(xs, ys, ufn, vfn; seeds=seeds, min_density=0.5, max_density=1.0)
+    data = evenstream(xs, ys, ufn, vfn; seeds=seeds, min_density=0.5, max_density=1.0)
     valid_cols = [j for j in 1:size(data.paths, 2) if !any(isnan, @view(data.paths[:, j]))]
     @test !isempty(valid_cols)
 
@@ -159,7 +159,7 @@ end
     vfn(x, y) = x
     seeds = ([0.65, 0.0],)
 
-    data = stream((xs, ys), (ufn, vfn); seeds=seeds, min_density=0.5, max_density=1.0)
+    data = evenstream((xs, ys), (ufn, vfn); seeds=seeds, min_density=0.5, max_density=1.0)
     valid_cols = [j for j in 1:size(data.paths, 2) if !any(isnan, @view(data.paths[:, j]))]
     @test !isempty(valid_cols)
 
@@ -181,7 +181,7 @@ end
     wfn(x, y, z) = 0.0
     seeds = ([0.0, 0.0, 0.0],)
 
-    data = stream(xs, ys, zs, ufn, vfn, wfn; seeds=seeds, min_density=0.4, max_density=0.8)
+    data = evenstream(xs, ys, zs, ufn, vfn, wfn; seeds=seeds, min_density=0.4, max_density=0.8)
     valid_cols = [j for j in 1:size(data.paths, 2) if !any(isnan, @view(data.paths[:, j]))]
     @test !isempty(valid_cols)
 
@@ -205,7 +205,7 @@ end
     ufn(x, y) = -y
     vfn(x, y) = x
 
-    data = stream(xs, ys, ufn, vfn; min_density=0.5, max_density=1.0)
+    data = evenstream(xs, ys, ufn, vfn; min_density=0.5, max_density=1.0)
 
     # :norm
     speed = colorize(data, :norm)
@@ -243,10 +243,10 @@ end
     ufn(x, y) = -y
     vfn(x, y) = x
 
-    data = stream(xs, ys, ufn, vfn; min_density=0.8, max_density=1.2)
+    data = evenstream(xs, ys, ufn, vfn; min_density=0.8, max_density=1.2)
 
     arrows = streamarrows(data; every=5, scale=0.2)
-    @test arrows isa ArrowData{2}
+    @test arrows isa UniformStreamlines.ArrowData{2}
     @test size(arrows.points, 1) == 2
     @test size(arrows.vectors, 1) == 2
     @test size(arrows.points, 2) == size(arrows.vectors, 2) == length(arrows.speeds)
@@ -285,7 +285,7 @@ end
     wfn(x, y, z) = z
 
     # 3-D flat form, functions
-    data = stream(xs, ys, zs, ufn, vfn, wfn; min_density=0.4, max_density=0.8)
+    data = evenstream(xs, ys, zs, ufn, vfn, wfn; min_density=0.4, max_density=0.8)
     @test data isa StreamlineData{3}
     @test size(data.paths, 1) == 3
 
@@ -295,7 +295,7 @@ end
 
     # streamarrows 3D
     arrows = streamarrows(data; every=4, scale=0.1)
-    @test arrows isa ArrowData{3}
+    @test arrows isa UniformStreamlines.ArrowData{3}
     @test size(arrows.points, 1) == 3
     @test size(arrows.vectors, 1) == 3
     @test size(arrows.points, 2) == size(arrows.vectors, 2) == length(arrows.speeds)
@@ -304,12 +304,12 @@ end
     U = [1.0 for x in xs, y in ys, z in zs]
     V = [0.0 for x in xs, y in ys, z in zs]
     W = [z  for x in xs, y in ys, z in zs]
-    data_grid = stream(xs, ys, zs, U, V, W; min_density=0.4, max_density=0.8)
+    data_grid = evenstream(xs, ys, zs, U, V, W; min_density=0.4, max_density=0.8)
     @test data_grid isa StreamlineData{3}
 
     # Mismatched grid sizes
     badW = zeros(length(xs), length(ys), length(zs) + 1)
-    @test_throws AssertionError stream(xs, ys, zs, U, V, badW)
+    @test_throws AssertionError evenstream(xs, ys, zs, U, V, badW)
 end
 
 @testitem "3D stream — N-D tuple form" tags=[:unit] setup=[StreamHelpers] begin
@@ -324,7 +324,7 @@ end
     vfn(x, y, z) = 0.0
     wfn(x, y, z) = z
 
-    data = stream((xs, ys, zs), (ufn, vfn, wfn); min_density=0.4, max_density=0.8)
+    data = evenstream((xs, ys, zs), (ufn, vfn, wfn); min_density=0.4, max_density=0.8)
     @test data isa StreamlineData{3}
     @test size(data.paths, 1) == 3
     @test size(data.paths, 2) > 0
@@ -333,12 +333,12 @@ end
     U = [1.0 for x in xs, y in ys, z in zs]
     V = [0.0 for x in xs, y in ys, z in zs]
     W = [z  for x in xs, y in ys, z in zs]
-    data_grid = stream((xs, ys, zs), (U, V, W); min_density=0.4, max_density=0.8)
+    data_grid = evenstream((xs, ys, zs), (U, V, W); min_density=0.4, max_density=0.8)
     @test data_grid isa StreamlineData{3}
 
     # N-D grid form throws ArgumentError for mismatched sizes
     badW = zeros(length(xs), length(ys), length(zs) + 1)
-    @test_throws ArgumentError stream((xs, ys, zs), (U, V, badW))
+    @test_throws ArgumentError evenstream((xs, ys, zs), (U, V, badW))
 end
 
 
@@ -356,7 +356,7 @@ end
     ufn(x, y) = -y
     vfn(x, y) = x
 
-    yes_col = stream(xs, ys, ufn, vfn; min_density=0.8, max_density=1.2, allow_collisions=true)
+    yes_col = evenstream(xs, ys, ufn, vfn; min_density=0.8, max_density=1.2, allow_collisions=true)
 
     @test yes_col isa StreamlineData{2}
     @test size(yes_col.paths, 1) == 2
@@ -387,7 +387,7 @@ end
     vfn(x, y) = x
     seeds = ([0.9, 0.0], [0.0, 0.9], [-0.9, 0.0])
 
-    data = stream(xs, ys, ufn, vfn;
+    data = evenstream(xs, ys, ufn, vfn;
         seeds=seeds,
         allow_collisions=true,
         min_density=0.6,

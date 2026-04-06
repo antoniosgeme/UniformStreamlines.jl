@@ -12,7 +12,7 @@ mkpath(ASSETS)
 
 xs = LinRange(-2, 2, 200)
 ys = LinRange(-2, 2, 200)
-str = stream(xs, ys, (x, y) -> -y, (x, y) -> x)
+str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x)
 
 fig = Figure(size=(600, 500));
 ax = Axis(fig[1, 1]; aspect=DataAspect(), title="Rigid-Body Rotation")
@@ -28,8 +28,8 @@ ys2 = LinRange(-3, 3, 200)
 u_vdp(x, y) = -1 - x^2 + y
 v_vdp(x, y) = 1 + x - y^2
 
-str_sparse = stream(xs2, ys2, u_vdp, v_vdp; min_density=2, max_density=4)
-str_dense  = stream(xs2, ys2, u_vdp, v_vdp; min_density=5, max_density=15)
+str_sparse = evenstream(xs2, ys2, u_vdp, v_vdp; min_density=2, max_density=4)
+str_dense  = evenstream(xs2, ys2, u_vdp, v_vdp; min_density=5, max_density=15)
 
 fig2 = Figure(size=(1000, 450));
 ax1 = Axis(fig2[1, 1]; aspect=DataAspect(), title="Sparse (min=2, max=4)")
@@ -45,7 +45,7 @@ println("  ✓ density_control.png")
 
 xs3 = LinRange(-2, 2, 200)
 ys3 = LinRange(-2, 2, 200)
-str_wave = stream(xs3, ys3,
+str_wave = evenstream(xs3, ys3,
                   (x, y) -> sin(π * x) * cos(π * y),
                   (x, y) -> 0.2y)
 c = colorize(str_wave, :norm)
@@ -61,7 +61,7 @@ println("  ✓ coloring.png")
 
 # ── 4. Arrows ────────────────────────────────────────────────────────────────
 
-str_saddle = stream(xs, ys, (x, y) -> x + y, (x, y) -> x - y)
+str_saddle = evenstream(xs, ys, (x, y) -> x + y, (x, y) -> x - y)
 c_saddle = colorize(str_saddle, :norm)
 
 fig4 = Figure(size=(600, 500));
@@ -93,7 +93,7 @@ ys5 = LinRange(-3, 3, 300)
 u_mask(x, y) = (x + 1)^2 + y^2 < 1 ? NaN : x + y
 v_mask(x, y) = (x + 1)^2 + y^2 < 1 ? NaN : x - y
 
-str_mask = stream(xs5, ys5, u_mask, v_mask)
+str_mask = evenstream(xs5, ys5, u_mask, v_mask)
 
 θ = LinRange(0, 2π, 100)
 cx = -1 .+ cos.(θ)
@@ -120,7 +120,7 @@ seeds = ntuple(i -> [seed_x[i], seed_y[i]], length(seed_x))
 u_vdp(x, y) = -1 - x^2 + y
 v_vdp(x, y) = 1 + x - y^2
 
-str_seed = stream(xs6, ys6,u_vdp, v_vdp;
+str_seed = evenstream(xs6, ys6,u_vdp, v_vdp;
                   seeds=seeds)
 
 fig6 = Figure(size=(600, 500));
@@ -135,8 +135,8 @@ println("  ✓ seeds.png")
 
 # ── 7. Unbroken Streamlines (allow_collisions) ──────────────────────────────
 
-str_normal = stream(xs6, ys6,u_vdp, v_vdp)  # default: allow_collisions=false, so streamlines truncate at collisions
-str_unbroken = stream(xs6, ys6,u_vdp, v_vdp;
+str_normal = evenstream(xs6, ys6,u_vdp, v_vdp)  # default: allow_collisions=false, so streamlines truncate at collisions
+str_unbroken = evenstream(xs6, ys6,u_vdp, v_vdp;
                       allow_collisions=true)
 
 fig7 = Figure(size=(1000, 450));
@@ -153,13 +153,13 @@ println("  ✓ unbroken.png")
 
 # ── 8. 3-D Streamlines with Arrows ──────────────────────────────────────────
 
-xs8 = LinRange(-2, 2, 40)å
+xs8 = LinRange(-2, 2, 40)
 ys8 = LinRange(-2, 2, 40)
 zs8 = LinRange(-2, 2, 40)
 
 # ABC (Arnold–Beltrami–Childress) flow — a classic chaotic 3-D field
 A, B, C = 1.0, √2, √3
-str3 = stream(xs8, ys8, zs8,
+str3 = evenstream(xs8, ys8, zs8,
               (x, y, z) -> A * sin(z) + C * cos(y),
               (x, y, z) -> B * sin(x) + A * cos(z),
               (x, y, z) -> C * sin(y) + B * cos(x);
