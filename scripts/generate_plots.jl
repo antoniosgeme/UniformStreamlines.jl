@@ -12,7 +12,7 @@ mkpath(ASSETS)
 
 xs = LinRange(-2, 2, 200)
 ys = LinRange(-2, 2, 200)
-str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x)
+str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> 1 + x - y^2)
 
 fig = Figure(size=(600, 500));
 ax = Axis(fig[1, 1]; aspect=DataAspect(), title="Rigid-Body Rotation")
@@ -67,7 +67,7 @@ c_saddle = colorize(str_saddle, :norm)
 fig4 = Figure(size=(600, 500));
 ax4 = Axis(fig4[1, 1]; aspect=DataAspect(), title="Arrows — Saddle Field")
 streamlines!(ax4, str_saddle; color=c_saddle, colormap=:plasma,
-             with_arrows=true, arrows_every=30)
+             with_arrows=true)
 tightlimits!(ax4)
 save(joinpath(ASSETS, "arrows.png"), fig4; px_per_unit=2)
 println("  ✓ arrows.png")
@@ -77,11 +77,11 @@ println("  ✓ arrows.png")
 fig4b = Figure(size=(1000, 450));
 ax4b_a = Axis(fig4b[1, 1]; aspect=DataAspect(), title="markersize = 8")
 streamlines!(ax4b_a, str_saddle; color=c_saddle, colormap=:plasma,
-             with_arrows=true, arrows_every=30, markersize=8)
+             with_arrows=true, markersize=8)
 tightlimits!(ax4b_a)
-ax4b_b = Axis(fig4b[1, 2]; aspect=DataAspect(), title="markersize = 20")
+ax4b_b = Axis(fig4b[1, 2]; aspect=DataAspect(), title="markersize = 15")
 streamlines!(ax4b_b, str_saddle; color=c_saddle, colormap=:plasma,
-             with_arrows=true, arrows_every=30, markersize=20)
+             with_arrows=true, markersize=15)
 tightlimits!(ax4b_b)
 save(joinpath(ASSETS, "arrow_sizes.png"), fig4b; px_per_unit=2)
 println("  ✓ arrow_sizes.png")
@@ -170,7 +170,7 @@ fig8 = Figure(size=(700, 600));
 ax8 = Axis3(fig8[1, 1]; title="3-D ABC Flow with Arrows",
             xlabel="x", ylabel="y", zlabel="z")
 streamlines!(ax8, str3; color=c3, colormap=:magma, linewidth=2,
-             with_arrows=true, arrows_every=25, markersize=0.12)
+             with_arrows=true, markersize=0.12)
 save(joinpath(ASSETS, "3d_arrows.png"), fig8; px_per_unit=2)
 println("  ✓ 3d_arrows.png")
 

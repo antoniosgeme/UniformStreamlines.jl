@@ -77,7 +77,7 @@ separated by columns of `NaN`.
 # Keyword arguments
 | Keyword            | Default    | Description                                                                 |
 |:-------------------|:-----------|:----------------------------------------------------------------------------|
-| `min_density`      | `3`        | Seeding grid density (domain divided into `10 × min_density` cells/axis). Higher → more seed candidates → denser coverage. |
+| `min_density`      | `4`        | Seeding grid density (domain divided into `10 × min_density` cells/axis). Higher → more seed candidates → denser coverage. |
 | `max_density`      | `10`       | Collision grid density (domain divided into `10 × max_density` cells/axis). Higher → streamlines may pass closer together. |
 | `allow_collisions` | `false`    | If `true`, streamlines pass through each other instead of being truncated.  |
 | `seeds`            | `nothing`  | Explicit seed points; overrides density grids.                              |
@@ -85,7 +85,7 @@ separated by columns of `NaN`.
 | `stepsize`         | adaptive   | Integration step size. By default set to `min(norm(domain) / (10 × max_density × 10), 0.05)`. |
 """
 function stream(::Val{D}, lower::Vector{<:Real}, upper::Vector{<:Real}, u::F;
-                min_density = 3,
+                min_density = 4,
                 max_density = 10,
                 allow_collisions::Bool = false,
                 seeds::Union{Nothing, Tuple{Vararg{AbstractVector}}} = nothing,

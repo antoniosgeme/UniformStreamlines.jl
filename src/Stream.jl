@@ -22,7 +22,7 @@ The 2-D/3-D flat forms are convenience wrappers around the N-D tuple form.
 
 | Keyword            | Default    | Description                                                                 |
 |:-------------------|:-----------|:----------------------------------------------------------------------------|
-| `min_density`      | `3`        | Seeding grid density (domain divided into `10 × min_density` cells/axis). Higher → more seed candidates → denser coverage. |
+| `min_density`      | `4`        | Seeding grid density (domain divided into `10 × min_density` cells/axis). Higher → more seed candidates → denser coverage. |
 | `max_density`      | `10`       | Collision grid density (domain divided into `10 × max_density` cells/axis). Higher → streamlines may pass closer together. |
 | `seeds`            | `nothing`  | Explicit seed points (a tuple/vector of D-vectors); overrides density grids. |
 | `min_length`       | `2`        | Discard streamlines with fewer than this many vertices.                     |

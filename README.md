@@ -32,7 +32,7 @@ ys = LinRange(-2, 2, 200)
 
 # From functions
 u(x,y) = -y
-v(x,y) = x
+v(x,y) = 1 + x - y^2
 str = evenstream(xs, ys, u, v)
 
 # From matrices
@@ -92,6 +92,21 @@ Built-in color symbols: `:norm` (or `:speed`), `:vx` (or `:u`), `:vy` (or `:v`),
 <p align="center">
   <img src="docs/src/assets/coloring.png" alt="Coloring by Speed" width="500">
 </p>
+
+### Arrows
+
+Add directional arrows with `with_arrows=true`. Arrows are placed uniformly along the arc length of each streamline by default:
+
+```julia
+# Uniform arrows (default)
+streamlines(str; with_arrows=true)
+
+# Control spacing explicitly
+streamlines(str; with_arrows=true, arrows_spacing=0.15)
+
+# Vertex-based placement (non-uniform, but faster)
+streamlines(str; with_arrows=true, arrows_every=20)
+```
 
 ### NaN Masking
 

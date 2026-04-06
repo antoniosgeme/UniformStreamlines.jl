@@ -6,7 +6,7 @@ CurrentModule = UniformStreamlines
 
 **Evenly-spaced streamlines for 2-D, 3-D, and N-D vector fields in Julia.**
 
-UniformStreamlines.jl implements the Jobard–Lefer algorithm to produce streamlines that are uniformly distributed across a domain — no clumps, no gaps. It works with function-defined or grid-defined velocity fields and supports Plots.jl and Makie.jl for visualization.
+UniformStreamlines.jl implements the Jobard–Lefer algorithm to produce streamlines that are uniformly distributed across a domain. It works with function-defined or grid-defined velocity fields and supports Plots.jl and Makie.jl for visualization.
 
 ## Installation
 
@@ -23,7 +23,7 @@ using UniformStreamlines
 xs = LinRange(-2, 2, 200)
 ys = LinRange(-2, 2, 200)
 
-str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x)
+str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> 1 + x - y^2)
 ```
 
 Plot with Plots.jl:
@@ -40,7 +40,9 @@ using CairoMakie
 streamlines(str)
 ```
 
-![Quick Start — Rigid-Body Rotation](assets/quickstart.png)
+<p align="center">
+  <img src="docs/src/assets/quickstart.png" alt="Quick Start" width="500">
+</p>
 
 ## Features
 
@@ -77,7 +79,7 @@ str_dense = evenstream(xs, ys, (x, y) -> -1 - x^2 + y, (x, y) -> 1 + x - y^2;
 
 Both parameters are unitless multipliers that scale an internal base grid of 10 cells per axis:
 
-- **`min_density`** (default `3`) — Controls the *seeding grid*. The domain is divided into `10 × min_density` cells per axis. One candidate seed point is placed per cell, so a higher value means more candidate starting points and denser coverage.
+- **`min_density`** (default `4`) — Controls the *seeding grid*. The domain is divided into `10 × min_density` cells per axis. One candidate seed point is placed per cell, so a higher value means more candidate starting points and denser coverage.
 - **`max_density`** (default `10`) — Controls the *collision-detection grid*. The domain is divided into `10 × max_density` cells per axis. When a streamline is being integrated, it checks this finer grid to decide whether it is too close to an existing streamline. A higher value allows streamlines to pass closer together before being truncated.
 
 The ratio `max_density / min_density` determines how much room there is between the minimum spacing (set by the collision grid) and the seeding spacing. Typical values:
@@ -85,7 +87,7 @@ The ratio `max_density / min_density` determines how much room there is between 
 | Style  | `min_density` | `max_density` |
 |:-------|:--------------|:--------------|
 | Sparse | 2             | 4             |
-| Normal | 3 (default)   | 10 (default)  |
+| Normal | 4 (default)   | 10 (default)  |
 | Dense  | 5–8           | 15–30         |
 
 ![Density Control](assets/density_control.png)
@@ -118,28 +120,34 @@ streamlines(str; line_z=c, color=:viridis)
 
 ### Arrows
 
-Add directional arrows along streamlines. By default, arrows are placed
-uniformly along the arc length of each streamline:
+Add directional arrows along streamlines with `with_arrows=true`. Arrows are placed **uniformly along the arc length** of each streamline by default, so spacing is consistent regardless of how densely the path is sampled:
 
 ```julia
-# Plots.jl
-streamlines(str; with_arrows=true, arrow_scale=0.5)
+# Makie — uniform arrows with automatic spacing
+streamlines(str; with_arrows=true)
 
-# Makie
+# Plots.jl
 streamlines(str; with_arrows=true)
 ```
 
-Explicit spacing control:
+![Arrows — Saddle Field](assets/arrows.png)
+
+You can control the arc-length distance between arrows with `arrows_spacing`:
 
 ```julia
-# Set arc-length spacing manually
-streamlines(str; with_arrows=true, arrows_spacing=0.3)
+# Tighter arrow spacing
+streamlines(str; with_arrows=true, arrows_spacing=0.15)
 
-# Legacy vertex-based placement (every N-th vertex)
-streamlines(str; with_arrows=true, arrows_every=20)
+# Wider arrow spacing
+streamlines(str; with_arrows=true, arrows_spacing=0.5)
 ```
 
-![Arrows — Saddle Field](assets/arrows.png)
+Alternatively, use `arrows_every` to place an arrow every N-th path vertex. This is faster but produces non-uniform spacing when vertex density varies:
+
+```julia
+# Vertex-based placement (non-uniform)
+streamlines(str; with_arrows=true, arrows_every=20)
+```
 
 Control arrow size with `markersize` (Makie) or `arrow_scale` (Plots.jl):
 
@@ -286,7 +294,7 @@ Both forms accept the same keyword arguments (`min_density`, `max_density`, `see
 
 | Keyword | Default | Description |
 |:--------|:--------|:------------|
-| `min_density` | `3` | Seeding grid density (`10 × min_density` cells/axis). Higher → more seed candidates → denser coverage. |
+| `min_density` | `4` | Seeding grid density (`10 × min_density` cells/axis). Higher → more seed candidates → denser coverage. |
 | `max_density` | `10` | Collision grid density (`10 × max_density` cells/axis). Higher → streamlines may pass closer together. |
 | `seeds` | `nothing` | Explicit seed points (tuple/vector of D-vectors) |
 | `min_length` | `2` | Discard streamlines with fewer than this many vertices |
