@@ -170,7 +170,7 @@ fig8 = Figure(size=(700, 600));
 ax8 = Axis3(fig8[1, 1]; title="3-D ABC Flow with Arrows",
             xlabel="x", ylabel="y", zlabel="z")
 streamlines!(ax8, str3; color=c3, colormap=:magma, linewidth=2,
-             with_arrows=true, markersize=0.08)
+             with_arrows=true, markersize=0.08,arrows_spacing=0.5)
 save(joinpath(ASSETS, "3d_arrows.png"), fig8; px_per_unit=2)
 println("  ✓ 3d_arrows.png")
 
