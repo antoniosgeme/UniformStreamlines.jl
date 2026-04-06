@@ -34,7 +34,7 @@ U = collect(real.(w)')
 V = collect(-imag.(w)')
 
 # Compute streamlines
-str = evenstream(x, y, U, V; min_density=3, max_density=15)
+str = evenstream(x, y, U, V; min_density=4, max_density=8)
 
 # Color by pressure: Cp = 1 - (u² + v²)
 c = colorize(str, (p, v) -> 1 - (v[1]^2 + v[2]^2))
@@ -49,7 +49,7 @@ hidespines!(ax)
 
 # Streamlines with pressure coloring and arrows
 streamlines!(ax, str; color=c, colorrange=(-1, 1), colormap=:jet, linewidth=3,
-             with_arrows=true, arrows_every=60, markersize=20)
+             with_arrows=true, markersize=20)
 
 # Draw the Julia-colored cylinders
 t = LinRange(0, 2π, 100)
