@@ -19,7 +19,7 @@ Evenly-spaced streamlines for 2-D, 3-D, and N-D vector fields in Julia, using th
 
 ```julia
 using Pkg
-Pkg.add("https://github.com/antoniosgeme/UniformStreamlines.jl.git")
+Pkg.add("UniformStreamlines")
 ```
 
 ## Quick Start
