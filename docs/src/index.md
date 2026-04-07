@@ -147,16 +147,16 @@ Alternatively, use `arrows_every` to place an arrow every N-th path vertex. This
 streamlines(str; with_arrows=true, arrows_every=20)
 ```
 
-Control arrow size with `markersize` (Makie) or `arrow_scale` (Plots.jl):
+Control arrow size with `markersize`:
 
 ```julia
-# Makie — small vs large arrows
+# Makie
 streamlines(str; with_arrows=true, markersize=8)   # small
 streamlines(str; with_arrows=true, markersize=20)  # large
 
 # Plots.jl
-streamlines(str; with_arrows=true, arrow_scale=0.5)  # half size
-streamlines(str; with_arrows=true, arrow_scale=2.0)  # double size
+streamlines(str; with_arrows=true, markersize=0.5)  # half size
+streamlines(str; with_arrows=true, markersize=2.0)  # double size
 ```
 
 ![Arrow Size Comparison](assets/arrow_sizes.png)
@@ -306,7 +306,7 @@ Both forms accept the same keyword arguments (`min_density`, `max_density`, `see
 | `with_arrows` | `false` | Show directional arrowheads |
 | `arrows_spacing` | automatic | Arc-length spacing between arrows (uniform placement) |
 | `arrows_every` | `nothing` | Legacy: place an arrow every N vertices; overrides `arrows_spacing` |
-| `arrow_scale` | `1.0` | Scale factor for arrow size |
+| `markersize` | `1.0` | Scale factor for arrow size |
 | `line_z` | — | Per-point color values from `colorize` |
 
 ### Keyword arguments for Makie recipe

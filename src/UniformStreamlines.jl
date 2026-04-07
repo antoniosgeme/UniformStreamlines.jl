@@ -45,7 +45,7 @@ Both work with **Makie** (via `MakieExt`) and **Plots.jl** (via `PlotsExt`).
 | Keyword | Default | Description |
 |:--------|:--------|:------------|
 | `line_z` | — | Per-point color values from [`colorize`](@ref) |
-| `arrow_scale` | `1.0` | Multiplicative scale factor for arrowhead size |
+| `markersize` | `1.0` | Scale factor for arrowhead size |
 | `color` | `:blue` | Series color / colormap when using `line_z` |
 
 # Examples

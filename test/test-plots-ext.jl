@@ -32,7 +32,7 @@ end
     PE = Base.get_extension(UniformStreamlines, :PlotsExt)
     sl = PE.Streamlines((str,))
     recipes = RecipesBase.apply_recipe(
-        Dict{Symbol, Any}(:with_arrows => true, :arrows_every => 5, :arrow_scale => 0.5),
+        Dict{Symbol, Any}(:with_arrows => true, :arrows_every => 5, :markersize => 0.5),
         sl)
     @test length(recipes) >= 2  # line series + shape series
 end
@@ -53,7 +53,7 @@ end
             :line_z => c,
             :with_arrows => true,
             :arrows_every => 10,
-            :arrow_scale => 1.0,
+            :markersize => 1.0,
         ),
         sl)
     @test length(recipes) >= 2
@@ -70,7 +70,7 @@ end
     PE = Base.get_extension(UniformStreamlines, :PlotsExt)
     sl = PE.Streamlines((str,))
     recipes = RecipesBase.apply_recipe(
-        Dict{Symbol, Any}(:with_arrows => true, :arrow_scale => 0.5),
+        Dict{Symbol, Any}(:with_arrows => true, :markersize => 0.5),
         sl)
     @test length(recipes) >= 2
 end
