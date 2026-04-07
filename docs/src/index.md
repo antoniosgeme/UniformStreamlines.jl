@@ -40,9 +40,7 @@ using CairoMakie
 streamlines(str)
 ```
 
-<p align="center">
-  <img src="assets/quickstart.png" alt="Quick Start" width="500">
-</p>
+![Quick Start](assets/quickstart.png)
 
 ## Features
 
@@ -90,9 +88,7 @@ The ratio `max_density / min_density` determines how much room there is between 
 | Normal | 4 (default)   | 10 (default)  |
 | Dense  | 5–8           | 15–30         |
 
-<p align="center">
-  <img src="assets/density_control.png" alt="Density Control" width="500">
-</p>
+![Density Control](assets/density_control.png)
 
 ### Coloring
 
@@ -118,9 +114,7 @@ using Plots
 streamlines(str; line_z=c, color=:viridis)
 ```
 
-<p align="center">
-  <img src="assets/coloring.png" alt="Coloring by Speed" width="500">
-</p>
+![Coloring by Speed](assets/coloring.png)
 
 ### Arrows
 
@@ -134,9 +128,7 @@ streamlines(str; with_arrows=true)
 streamlines(str; with_arrows=true)
 ```
 
-<p align="center">
-  <img src="assets/arrows.png" alt="Arrows — Saddle Field" width="500">
-</p>
+![Arrows — Saddle Field](assets/arrows.png)
 
 You can control the arc-length distance between arrows with `arrows_spacing`:
 
@@ -167,9 +159,7 @@ streamlines(str; with_arrows=true, arrow_scale=0.5)  # half size
 streamlines(str; with_arrows=true, arrow_scale=2.0)  # double size
 ```
 
-<p align="center">
-  <img src="assets/arrow_sizes.png" alt="Arrow Size Comparison" width="500">
-</p>
+![Arrow Size Comparison](assets/arrow_sizes.png)
 
 ### NaN Masking
 
@@ -182,9 +172,7 @@ v(x, y) = (x+1)^2 + y^2 < 1 ? NaN : x - y
 str = evenstream(xs, ys, u, v)
 ```
 
-<p align="center">
-  <img src="assets/nan_masking.png" alt="NaN Masking — Circular Obstacle" width="500">
-</p>
+![NaN Masking — Circular Obstacle](assets/nan_masking.png)
 
 ### Seed Points
 
@@ -196,9 +184,7 @@ seed_y = [ 0.0, 0.0, 0.0]
 str = evenstream(xs, ys, (x, y) -> x + y, (x, y) -> x - y; seeds=(seed_x, seed_y))
 ```
 
-<p align="center">
-  <img src="assets/seeds.png" alt="Seed Points" width="500">
-</p>
+![Seed Points](assets/seeds.png)
 
 ### Unbroken Streamlines
 
@@ -210,9 +196,7 @@ str = evenstream(xs, ys, (x, y) -> -y / (x^2 + y^2 + 0.1),
              allow_collisions=true)
 ```
 
-<p align="center">
-  <img src="assets/unbroken.png" alt="Unbroken Streamlines" width="800">
-</p>
+![Unbroken Streamlines](assets/unbroken.png)
 
 ### 3-D Streamlines
 
@@ -245,9 +229,7 @@ streamlines(str3; color=c3, colormap=:magma,
             with_arrows=true, markersize=0.12)
 ```
 
-<p align="center">
-  <img src="assets/3d_arrows.png" alt="3-D ABC Flow" width="500">
-</p>
+![3-D ABC Flow](assets/3d_arrows.png)
 
 ### N-D Streamlines
 
