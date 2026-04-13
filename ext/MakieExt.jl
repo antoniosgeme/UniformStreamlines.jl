@@ -55,7 +55,7 @@ function arrow_color(color, arr::ArrowData)
 end
 
 function colorrange_from(color)
-    if color isa AbstractVector
+    if color isa AbstractVector{<:Real}
         vals = filter(!isnan, color)
         return isempty(vals) ? (0.0, 1.0) : (Float64(minimum(vals)), Float64(maximum(vals)))
     else
