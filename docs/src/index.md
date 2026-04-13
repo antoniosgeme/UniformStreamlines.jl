@@ -23,7 +23,11 @@ using UniformStreamlines
 xs = LinRange(-2, 2, 200)
 ys = LinRange(-2, 2, 200)
 
+# Separate component functions
 str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> 1 + x - y^2)
+
+# Or a single vector-valued function — Tuple return = zero allocations
+str = evenstream(xs, ys, x -> (-x[2], 1 + x[1] - x[2]^2))
 ```
 
 Plot with Plots.jl:
@@ -46,17 +50,49 @@ streamlines(str)
 
 ### Function or Matrix Input
 
-Pass velocity components as functions or pre-computed arrays:
+Pass velocity components as separate functions, a single vector-valued function, or pre-computed arrays:
 
 ```julia
-# Functions
+# Separate component functions
 str = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x)
+
+# Single vector-valued function (see section below for performance notes)
+str = evenstream(xs, ys, x -> (x[2], -x[1]))     # Tuple return — recommended
 
 # Matrices (U[i,j] is the x-velocity at (xs[i], ys[j]))
 U = [-y for x in xs, y in ys]
 V = [ x for x in xs, y in ys]
 str = evenstream(xs, ys, U, V)
+
+# Single Vector-Valued Function that returns tuple/vector of appropriate size
+fn(x) = (x[2], 1 - x[1]^2 - x[2]^2)
+str = evenstream(xs, ys, fn)
+
+str = evenstream(xs, ys, zs, x -> (x[2], -x[1], x[3]))
+
+
 ```
+
+A word of caution on using user-defined functions. If the function does not return a static type and the compiler is not able to inline the function, the computation will allocate and will be much slower.
+```julia
+using BenchmarkTools
+using StaticArrays
+fn(x) = [sin(x[1]), cos(x[2])]
+@noinline fn2(x) = [sin(x[1]), cos(x[2])]
+
+@btime str = evenstream(xs, ys, fn )
+# 8.788 ms (43 allocations: 2.38 MiB)
+
+@btime str = evenstream(xs, ys, x -> @SVector [sin(x[1]),cos(x[2])] )
+# 7.331 ms (43 allocations: 2.39 MiB)
+
+@btime str = evenstream(xs, ys, x -> (sin(x[1]),cos(x[2])) )
+# 7.482 ms (43 allocations: 2.39 MiB)
+
+@btime str = evenstream(xs, ys, fn2 )
+# 24.313 ms (1716743 allocations: 48.24 MiB)
+```
+
 
 ### Density Control
 

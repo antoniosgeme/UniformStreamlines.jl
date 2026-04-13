@@ -1,16 +1,36 @@
 
 """
     evenstream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,Function};       kwargs...) -> StreamlineData{D}
+    evenstream(axs::NTuple{D,AbstractVector}, fn::Function;                  kwargs...) -> StreamlineData{D}
     evenstream(axs::NTuple{D,AbstractVector}, arrs::NTuple{D,AbstractArray}; kwargs...) -> StreamlineData{D}
     evenstream(xs, ys,     ufn, vfn;          kwargs...) -> StreamlineData{2}
+    evenstream(xs, ys,     fn;                kwargs...) -> StreamlineData{2}
     evenstream(xs, ys,     U, V;              kwargs...) -> StreamlineData{2}
     evenstream(xs, ys, zs, ufn, vfn, wfn;    kwargs...) -> StreamlineData{3}
+    evenstream(xs, ys, zs, fn;               kwargs...) -> StreamlineData{3}
     evenstream(xs, ys, zs, U, V, W;          kwargs...) -> StreamlineData{3}
 
 Compute evenly-spaced streamlines via the Jobard–Lefer algorithm.
 
 **Input styles:**
-- *Functions* — velocity components are evaluated on demand; no interpolation overhead.
+- *Separate component functions* — one function per velocity component, each called as
+  `ufn(x, y)` / `ufn(x, y, z)`. Zero allocations; the fastest option when the
+  components are independent expressions.
+- *Single vector-valued function* — one function `fn(x)` that returns all D velocity
+  components together. Convenient when the components share computation (e.g. a struct
+  carrying parameters). `x` is passed as an `SVector{D,Float64}` so the function
+  receives a concrete, stack-allocated input.
+
+  **Return-type performance note:** `evenstream` converts the return value of `fn` to an
+  `SVector` internally, but it cannot eliminate an allocation that happens *inside* `fn`.
+  Choose the return type carefully:
+
+  | Return type | Example | Allocations per step |
+  |:------------|:--------|:---------------------|
+  | `Tuple` | `x -> (x[2], -x[1])` | **0** — recommended |
+  | `SVector` | `x -> SA[x[2], -x[1]]` | **0** — recommended |
+  | `Vector` | `x -> [x[2], -x[1]]` | 1 per call — ~100× slower |
+
 - *Arrays* — pre-computed grids, linearly interpolated at integration points.
   Convention: `U[i, j, ...]` is the first velocity component at the point
   `(axs[1][i], axs[2][j], ...)`, created from the comprehension
@@ -36,8 +56,18 @@ A [`StreamlineData{D}`](@ref). Pass to [`colorize`](@ref) and [`streamarrows`](@
 ```julia
 xs = LinRange(-2, 2, 200);  ys = LinRange(-2, 2, 200)
 
-# From functions (flat 2-D form)
+# Separate component functions (flat 2-D form) — zero allocations
 result = evenstream(xs, ys, (x,y) -> -y, (x,y) -> x)
+
+# Single vector-valued function — return Tuple or SVector for best performance
+result = evenstream(xs, ys, x -> (x[2], -x[1]))         # Tuple  — zero allocations ✓
+result = evenstream(xs, ys, x -> SA[x[2], -x[1]])        # SVector — zero allocations ✓
+result = evenstream(xs, ys, x -> [x[2], -x[1]])          # Vector — works, but allocates ✗
+
+# Useful when the field carries shared state:
+struct MyField; params end
+(F::MyField)(x) = (x[2] * F.params, -x[1])              # returns Tuple — fast
+result = evenstream(xs, ys, MyField(1.5))
 
 # From pre-computed grids (flat 2-D form)
 U = [-y for x in xs, y in ys];  V = [x for x in xs, y in ys]
@@ -47,6 +77,9 @@ result = evenstream(xs, ys, U, V)
 zs = ts = LinRange(-2, 2, 200)
 result = evenstream((xs, ys, zs, ts), ((x,y,z,t) -> -y, (x,y,z,t) -> x, (x,y,z,t) -> z, (x,y,z,t) -> t))
 
+# N-D single function
+result = evenstream((xs, ys), x -> (x[2], -x[1]))
+
 colors = colorize(result, :norm)
 arrows = streamarrows(result; every=15)
 ```
@@ -55,6 +88,17 @@ function evenstream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,Function}; kwar
     lower = Float64[minimum(ax) for ax in axs]
     upper = Float64[maximum(ax) for ax in axs]
     field = p -> (args = ntuple(j -> p[j], Val(D)); SVector(ntuple(i -> fns[i](args...), Val(D))))
+    paths = stream(Val(D), lower, upper, field; kwargs...)
+    return StreamlineData{D}(paths, lower, upper, field)
+end
+
+function evenstream(axs::NTuple{D,AbstractVector}, fn::Function; kwargs...) where D
+    lower = Float64[minimum(ax) for ax in axs]
+    upper = Float64[maximum(ax) for ax in axs]
+    sample = fn(SVector{D,Float64}(ntuple(i -> lower[i], Val(D))))
+    length(sample) == D || throw(ArgumentError(
+        "fn must return a $D-element vector; got length $(length(sample))"))
+    field = p -> (r = fn(SVector{D,Float64}(ntuple(j -> p[j], Val(D)))); SVector{D,Float64}(ntuple(i -> @inbounds(r[i]), Val(D))))
     paths = stream(Val(D), lower, upper, field; kwargs...)
     return StreamlineData{D}(paths, lower, upper, field)
 end
@@ -87,6 +131,18 @@ function evenstream(xs::AbstractVector, ys::AbstractVector,
     return StreamlineData{2}(paths, lower, upper, field)
 end
 
+function evenstream(xs::AbstractVector, ys::AbstractVector,
+                    fn::Function; kwargs...)
+    lower = [Float64(minimum(xs)), Float64(minimum(ys))]
+    upper = [Float64(maximum(xs)), Float64(maximum(ys))]
+    sample = fn(SVector{2,Float64}(lower[1], lower[2]))
+    length(sample) == 2 || throw(ArgumentError(
+        "fn must return a 2-element vector; got length $(length(sample))"))
+    field = p -> (r = fn(SVector{2,Float64}(p[1], p[2])); SVector{2,Float64}(r[1], r[2]))
+    paths = stream(Val(2), lower, upper, field; kwargs...)
+    return StreamlineData{2}(paths, lower, upper, field)
+end
+
 # 2-D, grid data
 function evenstream(xs::AbstractVector, ys::AbstractVector,
                     U::AbstractMatrix{<:Real}, V::AbstractMatrix{<:Real}; kwargs...)
@@ -111,6 +167,18 @@ function evenstream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
     lower = Float64[minimum(xs), minimum(ys), minimum(zs)]
     upper = Float64[maximum(xs), maximum(ys), maximum(zs)]
     field = p -> (args = ntuple(j -> p[j], Val(3)); SVector(ufn(args...), vfn(args...), wfn(args...)))
+    paths = stream(Val(3), lower, upper, field; kwargs...)
+    return StreamlineData{3}(paths, lower, upper, field)
+end
+
+function evenstream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
+                    fn::Function; kwargs...)
+    lower = Float64[minimum(xs), minimum(ys), minimum(zs)]
+    upper = Float64[maximum(xs), maximum(ys), maximum(zs)]
+    sample = fn(SVector{3,Float64}(lower[1], lower[2], lower[3]))
+    length(sample) == 3 || throw(ArgumentError(
+        "fn must return a 3-element vector; got length $(length(sample))"))
+    field = p -> (r = fn(SVector{3,Float64}(p[1], p[2], p[3])); SVector{3,Float64}(r[1], r[2], r[3]))
     paths = stream(Val(3), lower, upper, field; kwargs...)
     return StreamlineData{3}(paths, lower, upper, field)
 end
