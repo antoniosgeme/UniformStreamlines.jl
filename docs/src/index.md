@@ -92,22 +92,34 @@ The ratio `max_density / min_density` determines how much room there is between 
 
 ### Coloring
 
-Use `colorize` to compute a per-point scalar for color-mapping:
+`colorize(str, f)` computes a per-point value for each vertex in the streamlines.
+`f` receives the position `p` and velocity `v` at that point.
+
+**Scalar coloring** — `f` returns a `Real`, pair the result with a `colormap`:
 
 ```julia
 str = evenstream(xs, ys, (x, y) -> sin(π*x) * cos(π*y), (x, y) -> 0.2y)
-c = colorize(str, :norm)
+
+c = colorize(str, :norm)                              # speed (built-in shortcut)
+c = colorize(str, (p, v) -> p[1]^2 + p[2]^2)         # distance² from origin
+c = colorize(str, (p, v) -> v[1] / norm(v))           # cos(angle) with x-axis
+
+streamlines!(ax, str; color=c, colormap=:viridis)
 ```
 
-Built-in color symbols: `:norm` (or `:speed`), `:vx` (or `:u`), `:vy` (or `:v`), `:vz` (or `:w`), `:x`, `:y`, `:z`.
+Built-in scalar symbols: `:norm` / `:speed`, `:vx` / `:u`, `:vy` / `:v`, `:vz` / `:w`, `:x`, `:y`, `:z`.
 
-You can also pass a custom function `(position, velocity) -> scalar`:
+**Direct color** — `f` returns a `Colorant`, used as-is without a colormap:
 
 ```julia
-c = colorize(str, (p, v) -> p[1]^2 + p[2]^2)   # distance² from origin
+using Makie: RGBAf
+
+c = colorize(str, (p, v) -> RGBAf(v[1], v[2], 0, 1))   # color by velocity direction
+
+streamlines!(ax, str; color=c)
 ```
 
-With Plots.jl, pass the color array via `line_z`:
+With Plots.jl, pass a scalar color array via `line_z`:
 
 ```julia
 using Plots
@@ -284,7 +296,7 @@ Both forms accept the same keyword arguments (`min_density`, `max_density`, `see
 | Function | Description |
 |:---------|:------------|
 | `evenstream` | Compute evenly-spaced streamlines |
-| `colorize` | Compute per-point color values |
+| `colorize` | Compute per-point scalar or color values |
 | `streamarrows` | Extract arrow glyphs for visualization |
 | `streamlines` / `streamlines!` | Plot recipe (Plots.jl or Makie) |
 

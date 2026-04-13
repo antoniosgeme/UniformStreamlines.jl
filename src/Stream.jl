@@ -139,53 +139,53 @@ end
 # ──────────────────────────────────────────────────────────────────────────────
 
 """
-    colorize(data::StreamlineData, f) -> Vector{Float64}
+    colorize(data::StreamlineData, f) -> Vector
 
-Compute a per-point scalar value along the streamlines for color-mapping.
-Returns a `Vector{Float64}` of length `size(data.paths, 2)` with `NaN` at
-separator columns.
+Compute a per-point value along the streamlines for use as a `color` argument
+to `streamlines` / `streamlines!`.
+
+The return type matches the return type of `f`:
+- `f` returns a `Real`     → `Vector{Float64}` (use with `colormap`)
+- `f` returns a `Colorant` → `Vector{<:Colorant}` (used directly as color, no colormap needed)
 
 # The color function `f`
 
-`f` must have the signature
+`f` has the signature
 
-    f(pos::AbstractVector, vel::AbstractVector) -> Real
+    f(pos::AbstractVector, vel::AbstractVector) -> Union{Real, Colorant}
 
-where `pos` and `vel` are both length-D vectors.
+where `pos` is the point position and `vel = field(pos)` is the velocity vector,
+both of length D.
 
-**Built-in symbols** (shortcuts):
+**Built-in symbols** (shortcuts for scalar coloring):
 
-| Symbol          | Equivalent function                        |
-|:----------------|:-------------------------------------------|
-| `:norm`/`:speed`| `(p, v) -> norm(v)`                        |
-| `:vx` / `:u`    | `(p, v) -> v[1]`                           |
-| `:vy` / `:v`    | `(p, v) -> v[2]`                           |
-| `:vz` / `:w`    | `(p, v) -> v[3]`  (3-D only)               |
-| `:x`             | `(p, v) -> p[1]`                           |
-| `:y`             | `(p, v) -> p[2]`                           |
-| `:z`             | `(p, v) -> p[3]`  (3-D only)               |
+| Symbol           | Equivalent function           |
+|:-----------------|:------------------------------|
+| `:norm`/`:speed` | `(p, v) -> norm(v)`           |
+| `:vx` / `:u`     | `(p, v) -> v[1]`              |
+| `:vy` / `:v`     | `(p, v) -> v[2]`              |
+| `:vz` / `:w`     | `(p, v) -> v[3]`  (3-D only)  |
+| `:x`             | `(p, v) -> p[1]`              |
+| `:y`             | `(p, v) -> p[2]`              |
+| `:z`             | `(p, v) -> p[3]`  (3-D only)  |
 
 # Examples
 ```julia
-colors = colorize(result, :norm)
-colors = colorize(result, (p, v) -> p[1]^2 + p[2]^2)   # distance² from origin
-colors = colorize(result, (p, v) -> v[1] / norm(v))     # cos(angle) with x-axis
+# Scalar coloring — pair with colormap
+c = colorize(str, :norm)
+c = colorize(str, (p, v) -> p[1]^2 + p[2]^2)   # distance² from origin
+c = colorize(str, (p, v) -> v[1] / norm(v))     # cos(angle) with x-axis
+streamlines!(ax, str; color=c, colormap=:viridis)
+
+# Direct color — no colormap needed
+c = colorize(str, (p, v) -> RGBAf(v[1], v[2], 0, 1))   # color by velocity direction
+streamlines!(ax, str; color=c)
 ```
 """
 function colorize(data::StreamlineData, f)
-    fn = resolve_color_fn(f)
-    N  = size(data.paths, 2)
-    c  = Vector{Float64}(undef, N)
+    fn    = resolve_color_fn(f)
     field = data.field
-    for i in 1:N
-        p = view(data.paths, :, i)
-        if any(isnan, p)
-            c[i] = NaN
-        else
-            vel   = field(p)
-            c[i]  = Float64(fn(p, vel))
-        end
-    end
+    c = [fn(p,field(p)) for p in eachcol(data.paths)]
     return c
 end
 
