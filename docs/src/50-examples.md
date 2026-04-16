@@ -33,11 +33,6 @@ f(x) = f(x, P)
 str = evenstream(-1.5:1.5, -1.5:1.5, f, min_density = 3, max_density = 7)
 ```
 
-`f` returns a `Point2f`, which is an `SVector` — so there are zero allocations per integration
-step. See the [performance note](index.md#Function-or-Matrix-Input) for details.
-
-### Visualization
-
 The four panels below compare Makie's built-in `streamplot` with `UniformStreamlines`.
 The bottom row uses [`colorize`](@ref) to colour the lines by speed (`:norm`) and by velocity
 direction (custom `RGBAf` function):
