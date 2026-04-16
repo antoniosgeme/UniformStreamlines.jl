@@ -658,6 +658,40 @@ end
     @test size(data.paths, 2) > 0
 end
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Small-magnitude fields (issue: streamlines appearing as dots)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@testitem "small magnitude field produces continuous streamlines" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    using LinearAlgebra: norm
+    Random.seed!(91)
+
+    xs = collect(LinRange(-2, 2, 51))
+    ys = collect(LinRange(-2, 2, 51))
+
+    # Scale a normal rotation field by 1e-7 to simulate tiny-magnitude fields
+    scale = 1e-7
+    ufn(x, y) = -y * scale
+    vfn(x, y) = x * scale
+
+    data = evenstream(xs, ys, ufn, vfn; min_density=0.5, max_density=1.0)
+    segments = split_streams(data.paths)
+
+    # With normalization, streamlines should be multi-vertex (not dots)
+    long_segs = filter(s -> size(s, 2) >= 5, segments)
+    @test !isempty(long_segs)
+
+    # Each long segment should span a significant fraction of the domain
+    for seg in long_segs
+        dx = maximum(seg[1, :]) - minimum(seg[1, :])
+        dy = maximum(seg[2, :]) - minimum(seg[2, :])
+        span = hypot(dx, dy)
+        @test span > 0.1   # should cover at least some physical distance
+    end
+end
+
 @testitem "endgrid out-of-bounds triggers trim" tags=[:unit] setup=[StreamHelpers] begin
     using UniformStreamlines
     Random.seed!(91)

@@ -345,7 +345,7 @@ Both forms accept the same keyword arguments (`min_density`, `max_density`, `see
 | `seeds` | `nothing` | Explicit seed points (tuple/vector of D-vectors) |
 | `min_length` | `2` | Discard streamlines with fewer than this many vertices |
 | `allow_collisions` | `false` | Allow streamlines to cross each other |
-| `stepsize` | adaptive | Integration step size; defaults to `min(norm(domain) / (10 × max_density × 10), 0.05)` |
+| `stepsize` | adaptive | Arc-length step size (physical distance per integration step). Velocity is normalized internally, so this controls spatial resolution independent of field magnitude. Default: `min(norm(domain) / (10 × max_density × 10), 0.05)` |
 
 ### Keyword arguments for Plots.jl recipe
 

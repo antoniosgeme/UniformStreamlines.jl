@@ -24,8 +24,10 @@ end
     trace!(verts, pos, x, x0, u, stepsize, maxvert, lower, upper, sgn) -> Int
 
 Integrate a single streamline from `x0` into the pre-allocated buffer `verts`
-(D × maxvert) using midpoint (RK2) steps. `pos` and `x` are D-length working
-vectors. Returns the number of columns written.
+(D × maxvert) using midpoint (RK2) steps with unit-velocity normalization
+(each step advances exactly `stepsize` in arc-length, regardless of field
+magnitude). `pos` and `x` are D-length working vectors. Returns the number of
+columns written.
 """
 function trace!(verts::Matrix{Float64}, pos::Vector{Float64}, x::Vector{Float64},
                 x0::AbstractVector, u::F,
@@ -38,9 +40,11 @@ function trace!(verts::Matrix{Float64}, pos::Vector{Float64}, x::Vector{Float64}
         pos .= vi
         v = u(pos)
         any(isnan, v) && return i
+        nv = norm(v)
+        iszero(nv) && return i
 
-        # RK2 midpoint
-        @. x = vi + sgn * (stepsize / 2) * v
+        # RK2 midpoint (unit-velocity steps for magnitude invariance)
+        @. x = vi + sgn * (stepsize / 2) * v / nv
         if !all(j -> lower[j] <= x[j] <= upper[j], eachindex(x))
             box_intersection!(view(verts, :, i+1), vi, x, lower, upper)
             return i + 1
@@ -48,8 +52,10 @@ function trace!(verts::Matrix{Float64}, pos::Vector{Float64}, x::Vector{Float64}
 
         vm = u(x)
         any(isnan, vm) && return i
+        nvm = norm(vm)
+        iszero(nvm) && return i
 
-        @. x = vi + sgn * stepsize * vm
+        @. x = vi + sgn * stepsize * vm / nvm
         if !all(j -> lower[j] <= x[j] <= upper[j], eachindex(x))
             box_intersection!(view(verts, :, i+1), vi, x, lower, upper)
             return i + 1
@@ -82,7 +88,7 @@ separated by columns of `NaN`.
 | `allow_collisions` | `false`    | If `true`, streamlines pass through each other instead of being truncated.  |
 | `seeds`            | `nothing`  | Explicit seed points; overrides density grids.                              |
 | `min_length`       | `2`        | Discard streamlines with fewer than this many vertices.                     |
-| `stepsize`         | adaptive   | Integration step size. By default set to `min(norm(domain) / (10 × max_density × 10), 0.05)`. |
+| `stepsize`         | adaptive   | Arc-length step size (physical distance per integration step). Velocity is normalized internally, so this controls spatial resolution independent of field magnitude. Default: `min(norm(domain) / (10 × max_density × 10), 0.05)`. |
 """
 function stream(::Val{D}, lower::Vector{<:Real}, upper::Vector{<:Real}, u::F;
                 min_density = 4,

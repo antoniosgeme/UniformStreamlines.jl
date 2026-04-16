@@ -47,7 +47,7 @@ The 2-D/3-D flat forms are convenience wrappers around the N-D tuple form.
 | `seeds`            | `nothing`  | Explicit seed points (a tuple/vector of D-vectors); overrides density grids. |
 | `min_length`       | `2`        | Discard streamlines with fewer than this many vertices.                     |
 | `allow_collisions` | `false`    | If `true`, streamlines pass through each other instead of being truncated.  |
-| `stepsize`         | adaptive   | Integration step size. By default set to `min(norm(domain) / (10 × max_density × 10), 0.05)`. |
+| `stepsize`         | adaptive   | Arc-length step size (physical distance per integration step). Velocity is normalized internally, so this controls spatial resolution independent of field magnitude. Default: `min(norm(domain) / (10 × max_density × 10), 0.05)`. |
 
 # Returns
 A [`StreamlineData{D}`](@ref). Pass to [`colorize`](@ref) and [`streamarrows`](@ref).
