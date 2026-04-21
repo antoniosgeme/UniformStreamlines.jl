@@ -86,7 +86,7 @@ separated by columns of `NaN`.
 | `min_density`      | `4`        | Seeding grid density (domain divided into `10 × min_density` cells/axis). Higher → more seed candidates → denser coverage. |
 | `max_density`      | `10`       | Collision grid density (domain divided into `10 × max_density` cells/axis). Higher → streamlines may pass closer together. |
 | `allow_collisions` | `false`    | If `true`, streamlines pass through each other instead of being truncated.  |
-| `seeds`            | `nothing`  | Explicit seed points; overrides density grids.                              |
+| `seeds`            | `nothing`  | Explicit seed points; overrides density grids. Two formats: `([x1,y1], [x2,y2], ...)` (tuple of D-vectors, one per point) or `(xs, ys)` (pair of N-vectors, one per axis). |
 | `min_length`       | `2`        | Discard streamlines with fewer than this many vertices.                     |
 | `stepsize`         | adaptive   | Arc-length step size (physical distance per integration step). Velocity is normalized internally, so this controls spatial resolution independent of field magnitude. Default: `min(norm(domain) / (10 × max_density × 10), 0.05)`. |
 """
@@ -124,6 +124,9 @@ function stream(::Val{D}, lower::Vector{<:Real}, upper::Vector{<:Real}, u::F;
         rc_list = collect(CartesianIndices(startgrid))
         shuffle!(rc_list)
         rc_list
+    elseif length(seeds) == D && !isempty(seeds) && length(first(seeds)) != D
+        # Parallel-vectors format: (x_coords, y_coords, ...) — zip into individual points
+        collect(zip(seeds...))
     else
         seeds
     end
