@@ -1,6 +1,6 @@
 name = "UniformStreamlines"
 uuid = "d45a1faf-ed48-5bcd-af90-6f9b3352014e"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Antonios Gementzopoulos"]
 
 [workspace]
