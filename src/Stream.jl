@@ -80,6 +80,15 @@ result = evenstream((xs, ys, zs, ts), ((x,y,z,t) -> -y, (x,y,z,t) -> x, (x,y,z,t
 # N-D single function
 result = evenstream((xs, ys), x -> (x[2], -x[1]))
 
+# Custom seeds — two equivalent formats:
+# Tuple of D-vectors, one per seed point
+seeds_a = ([-1.0, 0.0], [0.0, 0.0], [1.0, 0.0])
+result = evenstream(xs, ys, (x,y) -> -y, (x,y) -> x; seeds=seeds_a)
+
+# Pair of N-vectors, one per axis (xs_coords and ys_coords)
+seeds_b = ([-1.0, 0.0, 1.0], [0.0, 0.0, 0.0])
+result = evenstream(xs, ys, (x,y) -> -y, (x,y) -> x; seeds=seeds_b)
+
 colors = colorize(result, :norm)
 arrows = streamarrows(result; every=15)
 ```

@@ -224,12 +224,17 @@ str = evenstream(xs, ys, u, v)
 
 ### Seed Points
 
-Provide explicit seed points to control where streamlines originate:
+Provide explicit seed points to control where streamlines originate. Two equivalent formats are accepted:
 
 ```julia
+# Pair of N-vectors, one per axis
 seed_x = [-1.0, 0.0, 1.0]
 seed_y = [ 0.0, 0.0, 0.0]
 str = evenstream(xs, ys, (x, y) -> x + y, (x, y) -> x - y; seeds=(seed_x, seed_y))
+
+# Tuple of D-vectors, one per seed point
+seeds = ([-1.0, 0.0], [0.0, 0.0], [1.0, 0.0])
+str = evenstream(xs, ys, (x, y) -> x + y, (x, y) -> x - y; seeds=seeds)
 ```
 
 ![Seed Points](assets/seeds.png)
@@ -342,7 +347,7 @@ Both forms accept the same keyword arguments (`min_density`, `max_density`, `see
 |:--------|:--------|:------------|
 | `min_density` | `4` | Seeding grid density (`10 × min_density` cells/axis). Higher → more seed candidates → denser coverage. |
 | `max_density` | `10` | Collision grid density (`10 × max_density` cells/axis). Higher → streamlines may pass closer together. |
-| `seeds` | `nothing` | Explicit seed points (tuple/vector of D-vectors) |
+| `seeds` | `nothing` | Explicit seed points — tuple of D-vectors (one per point) or pair of N-vectors (one per axis) |
 | `min_length` | `2` | Discard streamlines with fewer than this many vertices |
 | `allow_collisions` | `false` | Allow streamlines to cross each other |
 | `stepsize` | adaptive | Arc-length step size (physical distance per integration step). Velocity is normalized internally, so this controls spatial resolution independent of field magnitude. Default: `min(norm(domain) / (10 × max_density × 10), 0.05)` |
