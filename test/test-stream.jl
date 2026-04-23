@@ -19,6 +19,11 @@
         end
         return segments
     end
+
+    function field_allocs(data, p)
+        field = data.field
+        return @allocated field(p)
+    end
 end
 
 
@@ -122,6 +127,37 @@ end
     badU = zeros(length(xs), length(ys) + 1)
     @test_throws ArgumentError evenstream((xs, ys), (badU, V))
     @test_throws ArgumentError evenstream((xs, ys), (U, badU))
+end
+
+@testitem "Wrapped field calls stay allocation-free" tags=[:unit] setup=[StreamHelpers] begin
+    using UniformStreamlines
+    Random.seed!(12)
+
+    xs = collect(LinRange(-1, 1, 21))
+    ys = collect(LinRange(-1, 1, 21))
+    zs = collect(LinRange(-1, 1, 21))
+
+    ufn(x, y) = -y
+    vfn(x, y) = x
+
+    struct Rot2Field end
+    (f::Rot2Field)(p) = (p[2], -p[1])
+
+    struct Rot3Field end
+    (f::Rot3Field)(p) = (p[2], -p[1], 0.0)
+
+    data_flat2 = evenstream(xs, ys, ufn, vfn; min_density=0.3, max_density=0.6)
+    data_call2 = evenstream(xs, ys, Rot2Field(); min_density=0.3, max_density=0.6)
+    data_var2 = evenstream(xs, ys, (x, y) -> (y, -x); min_density=0.3, max_density=0.6)
+    data_call3 = evenstream(xs, ys, zs, Rot3Field(); min_density=0.3, max_density=0.6)
+
+    p2 = [0.2, -0.1]
+    p3 = [0.2, -0.1, 0.4]
+
+    @test field_allocs(data_flat2, p2) == 0
+    @test field_allocs(data_call2, p2) == 0
+    @test field_allocs(data_var2, p2) == 0
+    @test field_allocs(data_call3, p3) == 0
 end
 
 

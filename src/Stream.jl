@@ -1,8 +1,8 @@
 
 """
-    evenstream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,Function};       kwargs...) -> StreamlineData{D}
-    evenstream(axs::NTuple{D,AbstractVector}, fn::Function;                  kwargs...) -> StreamlineData{D}
-    evenstream(axs::NTuple{D,AbstractVector}, arrs::NTuple{D,AbstractArray}; kwargs...) -> StreamlineData{D}
+    evenstream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,F};              kwargs...) where {D,F<:Function} -> StreamlineData{D}
+    evenstream(axs::NTuple{D,AbstractVector}, fn;                             kwargs...) -> StreamlineData{D}
+    evenstream(axs::NTuple{D,AbstractVector}, arrs::NTuple{D,AbstractArray};  kwargs...) -> StreamlineData{D}
     evenstream(xs, ys,     ufn, vfn;          kwargs...) -> StreamlineData{2}
     evenstream(xs, ys,     fn;                kwargs...) -> StreamlineData{2}
     evenstream(xs, ys,     U, V;              kwargs...) -> StreamlineData{2}
@@ -16,10 +16,14 @@ Compute evenly-spaced streamlines via the Jobard–Lefer algorithm.
 - *Separate component functions* — one function per velocity component, each called as
   `ufn(x, y)` / `ufn(x, y, z)`. Zero allocations; the fastest option when the
   components are independent expressions.
-- *Single vector-valued function* — one function `fn(x)` that returns all D velocity
-  components together. Convenient when the components share computation (e.g. a struct
-  carrying parameters). `x` is passed as an `SVector{D,Float64}` so the function
-  receives a concrete, stack-allocated input.
+- *Single vector-valued callable* — any callable `fn` (a plain function, a lambda, or
+  a struct with a call method) that returns all D velocity components together.
+  Convenient when components share computation (e.g. a struct carrying parameters).
+
+  Two calling conventions are supported and auto-detected:
+  - `fn(p)` — `p` is an `SVector{D,Float64}` (preferred; zero-copy, stack-allocated)
+  - `fn(x₁, x₂, …, xD)` — separate scalar coordinates, useful when an existing
+    function already accepts individual arguments
 
   **Return-type performance note:** `evenstream` converts the return value of `fn` to an
   `SVector` internally, but it cannot eliminate an allocation that happens *inside* `fn`.
@@ -64,10 +68,13 @@ result = evenstream(xs, ys, x -> (x[2], -x[1]))         # Tuple  — zero alloca
 result = evenstream(xs, ys, x -> SA[x[2], -x[1]])        # SVector — zero allocations ✓
 result = evenstream(xs, ys, x -> [x[2], -x[1]])          # Vector — works, but allocates ✗
 
-# Useful when the field carries shared state:
+# Callable objects (any struct with a call method) are supported:
 struct MyField; params end
-(F::MyField)(x) = (x[2] * F.params, -x[1])              # returns Tuple — fast
+(F::MyField)(x) = (x[2] * F.params, -x[1])              # single-vector form — fast
 result = evenstream(xs, ys, MyField(1.5))
+
+# Varargs calling convention — fn(x, y) instead of fn(p):
+result = evenstream(xs, ys, (x, y) -> (y, -x))          # auto-detected ✓
 
 # From pre-computed grids (flat 2-D form)
 U = [-y for x in xs, y in ys];  V = [x for x in xs, y in ys]
@@ -93,6 +100,34 @@ colors = colorize(result, :norm)
 arrows = streamarrows(result; every=15)
 ```
 """
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Internal helper: normalise any callable into the standard field signature
+#   p::AbstractVector{Float64} → SVector{D,Float64}
+#
+# Supports two calling conventions:
+#   fn(p::SVector{D,Float64})        — single-vector form (preferred)
+#   fn(x₁, x₂, …, xD)               — separate scalar coordinates
+# ──────────────────────────────────────────────────────────────────────────────
+function make_field_fn(fn::F, ::Val{D}, lower::AbstractVector) where {D,F}
+    seed = SVector{D,Float64}(ntuple(i -> lower[i], Val(D)))
+    if applicable(fn, seed)
+        sample = fn(seed)
+        length(sample) == D || throw(ArgumentError(
+            "fn must return a $D-element iterable; got length $(length(sample))"))
+        return p -> (r = fn(SVector{D,Float64}(ntuple(j -> p[j], Val(D)))); SVector{D,Float64}(ntuple(i -> @inbounds(r[i]), Val(D))))
+    else
+        scalars = ntuple(i -> lower[i], Val(D))
+        applicable(fn, scalars...) || throw(ArgumentError(
+            "fn is not callable with a single SVector{$D,Float64} argument or $D separate " *
+            "Float64 scalar arguments. Ensure fn(p) or fn(x₁,…,x$D) is defined."))
+        sample = fn(scalars...)
+        length(sample) == D || throw(ArgumentError(
+            "fn must return a $D-element iterable; got length $(length(sample))"))
+        return p -> (r = fn(ntuple(j -> p[j], Val(D))...); SVector{D,Float64}(ntuple(i -> @inbounds(r[i]), Val(D))))
+    end
+end
+
 function evenstream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,Function}; kwargs...) where D
     lower = Float64[minimum(ax) for ax in axs]
     upper = Float64[maximum(ax) for ax in axs]
@@ -101,13 +136,10 @@ function evenstream(axs::NTuple{D,AbstractVector}, fns::NTuple{D,Function}; kwar
     return StreamlineData{D}(paths, lower, upper, field)
 end
 
-function evenstream(axs::NTuple{D,AbstractVector}, fn::Function; kwargs...) where D
+function evenstream(axs::NTuple{D,AbstractVector}, fn::F; kwargs...) where {D,F}
     lower = Float64[minimum(ax) for ax in axs]
     upper = Float64[maximum(ax) for ax in axs]
-    sample = fn(SVector{D,Float64}(ntuple(i -> lower[i], Val(D))))
-    length(sample) == D || throw(ArgumentError(
-        "fn must return a $D-element vector; got length $(length(sample))"))
-    field = p -> (r = fn(SVector{D,Float64}(ntuple(j -> p[j], Val(D)))); SVector{D,Float64}(ntuple(i -> @inbounds(r[i]), Val(D))))
+    field = make_field_fn(fn, Val(D), lower)
     paths = stream(Val(D), lower, upper, field; kwargs...)
     return StreamlineData{D}(paths, lower, upper, field)
 end
@@ -132,7 +164,7 @@ end
 # ──────────────────────────────────────────────────────────────────────────────
 
 function evenstream(xs::AbstractVector, ys::AbstractVector,
-                    ufn::Function, vfn::Function; kwargs...)
+                    ufn, vfn; kwargs...)
     lower = [Float64(minimum(xs)), Float64(minimum(ys))]
     upper = [Float64(maximum(xs)), Float64(maximum(ys))]
     field = p -> (args = ntuple(j -> p[j], Val(2)); SVector(ufn(args...), vfn(args...)))
@@ -141,13 +173,10 @@ function evenstream(xs::AbstractVector, ys::AbstractVector,
 end
 
 function evenstream(xs::AbstractVector, ys::AbstractVector,
-                    fn::Function; kwargs...)
+                    fn::F; kwargs...) where F
     lower = [Float64(minimum(xs)), Float64(minimum(ys))]
     upper = [Float64(maximum(xs)), Float64(maximum(ys))]
-    sample = fn(SVector{2,Float64}(lower[1], lower[2]))
-    length(sample) == 2 || throw(ArgumentError(
-        "fn must return a 2-element vector; got length $(length(sample))"))
-    field = p -> (r = fn(SVector{2,Float64}(p[1], p[2])); SVector{2,Float64}(r[1], r[2]))
+    field = make_field_fn(fn, Val(2), lower)
     paths = stream(Val(2), lower, upper, field; kwargs...)
     return StreamlineData{2}(paths, lower, upper, field)
 end
@@ -172,7 +201,7 @@ end
 # ──────────────────────────────────────────────────────────────────────────────
 
 function evenstream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
-                    ufn::Function, vfn::Function, wfn::Function; kwargs...)
+                    ufn, vfn, wfn; kwargs...)
     lower = Float64[minimum(xs), minimum(ys), minimum(zs)]
     upper = Float64[maximum(xs), maximum(ys), maximum(zs)]
     field = p -> (args = ntuple(j -> p[j], Val(3)); SVector(ufn(args...), vfn(args...), wfn(args...)))
@@ -181,13 +210,10 @@ function evenstream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
 end
 
 function evenstream(xs::AbstractVector, ys::AbstractVector, zs::AbstractVector,
-                    fn::Function; kwargs...)
+                    fn::F; kwargs...) where F
     lower = Float64[minimum(xs), minimum(ys), minimum(zs)]
     upper = Float64[maximum(xs), maximum(ys), maximum(zs)]
-    sample = fn(SVector{3,Float64}(lower[1], lower[2], lower[3]))
-    length(sample) == 3 || throw(ArgumentError(
-        "fn must return a 3-element vector; got length $(length(sample))"))
-    field = p -> (r = fn(SVector{3,Float64}(p[1], p[2], p[3])); SVector{3,Float64}(r[1], r[2], r[3]))
+    field = make_field_fn(fn, Val(3), lower)
     paths = stream(Val(3), lower, upper, field; kwargs...)
     return StreamlineData{3}(paths, lower, upper, field)
 end
