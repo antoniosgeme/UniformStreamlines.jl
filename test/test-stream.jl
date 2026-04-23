@@ -22,6 +22,9 @@
 
     function field_allocs(data, p)
         field = data.field
+        # Warm up once so @allocated measures steady-state execution cost.
+        field(p)
+        GC.gc()
         return @allocated field(p)
     end
 end
