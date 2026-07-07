@@ -1,6 +1,6 @@
 name = "UniformStreamlines"
 uuid = "d45a1faf-ed48-5bcd-af90-6f9b3352014e"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Antonios Gementzopoulos"]
 
 [workspace]
@@ -14,16 +14,18 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [weakdeps]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 
 [extensions]
 MakieExt = "Makie"
-PlotsExt = "RecipesBase"
+PlotsExt = ["Plots", "RecipesBase"]
 
 [compat]
 FastInterpolations = "0.4"
 LinearAlgebra = "1"
 Makie = "0.24"
+Plots = "1"
 RecipesBase = "1"
 Random = "1"
 StaticArrays = "1.9"
