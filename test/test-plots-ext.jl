@@ -4,11 +4,14 @@ end
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Plots.jl recipe (via RecipesBase)
+# Plots.jl recipe — PlotsExt now loads on `using Plots` (not RecipesBase).
+# The recipe body is exercised via RecipesBase.apply_recipe on the userplot type,
+# which is independent of global `streamlines` dispatch (so it is unaffected by
+# MakieExt also being loaded in the same test process).
 # ──────────────────────────────────────────────────────────────────────────────
 
 @testitem "Plots recipe — lines only" tags=[:ext] setup=[PlotsHelpers] begin
-    using UniformStreamlines, RecipesBase
+    using UniformStreamlines, Plots, RecipesBase
     Random.seed!(110)
 
     xs = collect(LinRange(-1, 1, 61))
@@ -22,7 +25,7 @@ end
 end
 
 @testitem "Plots recipe — with arrows" tags=[:ext] setup=[PlotsHelpers] begin
-    using UniformStreamlines, RecipesBase
+    using UniformStreamlines, Plots, RecipesBase
     Random.seed!(111)
 
     xs = collect(LinRange(-1, 1, 61))
@@ -38,7 +41,7 @@ end
 end
 
 @testitem "Plots recipe — with line_z color mapping and arrows" tags=[:ext] setup=[PlotsHelpers] begin
-    using UniformStreamlines, RecipesBase
+    using UniformStreamlines, Plots, RecipesBase
     Random.seed!(112)
 
     xs = collect(LinRange(-1, 1, 61))
@@ -60,7 +63,7 @@ end
 end
 
 @testitem "Plots recipe — default spacing arrows" tags=[:ext] setup=[PlotsHelpers] begin
-    using UniformStreamlines, RecipesBase
+    using UniformStreamlines, Plots, RecipesBase
     Random.seed!(113)
 
     xs = collect(LinRange(-1, 1, 61))
