@@ -71,6 +71,54 @@ end
     @test p isa Makie.Plot
 end
 
+@testitem "Makie 2D streamlines! — observable updates" tags=[:ext] setup=[MakieHelpers] begin
+    using UniformStreamlines, CairoMakie
+    Random.seed!(110)
+
+    xs = collect(LinRange(-1, 1, 61))
+    ys = collect(LinRange(-1, 1, 61))
+    str1 = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x; min_density=0.5, max_density=1.0)
+    str2 = evenstream(xs, ys, (x, y) -> y, (x, y) -> -x; min_density=0.5, max_density=1.0)
+
+    str_obs = Observable(str1)
+    fig = Figure()
+    ax = Axis(fig[1, 1])
+    p = streamlines!(ax, str_obs)
+    lines_plot = p.plots[1]
+    pos_before = Makie.to_value(lines_plot[1][])
+
+    str_obs[] = str2
+    pos_after = Makie.to_value(lines_plot[1][])
+
+    @test pos_before != pos_after
+end
+
+@testitem "Makie 2D streamlines! — observable updates with arrows" tags=[:ext] setup=[MakieHelpers] begin
+    using UniformStreamlines, CairoMakie
+    Random.seed!(111)
+
+    xs = collect(LinRange(-1, 1, 61))
+    ys = collect(LinRange(-1, 1, 61))
+    str1 = evenstream(xs, ys, (x, y) -> -y, (x, y) -> x; min_density=0.5, max_density=1.0)
+    str2 = evenstream(xs, ys, (x, y) -> y, (x, y) -> -x; min_density=0.5, max_density=1.0)
+
+    str_obs = Observable(str1)
+    fig = Figure()
+    ax = Axis(fig[1, 1])
+    p = streamlines!(ax, str_obs; with_arrows=true, arrows_every=5)
+    lines_plot = p.plots[1]
+    scatter_plot = p.plots[2]
+    pos_before = Makie.to_value(lines_plot[1][])
+    arrow_before = Makie.to_value(scatter_plot[1][])
+
+    str_obs[] = str2
+    pos_after = Makie.to_value(lines_plot[1][])
+    arrow_after = Makie.to_value(scatter_plot[1][])
+
+    @test pos_before != pos_after
+    @test arrow_before != arrow_after
+end
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Makie 3-D
@@ -102,6 +150,35 @@ end
 
     fig = streamlines(str)
     @test fig isa Makie.FigureAxisPlot
+end
+
+@testitem "Makie 3D streamlines! — observable updates with arrows" tags=[:ext] setup=[MakieHelpers] begin
+    using UniformStreamlines, CairoMakie
+    Random.seed!(112)
+
+    xs = collect(LinRange(-1, 1, 21))
+    ys = collect(LinRange(-1, 1, 21))
+    zs = collect(LinRange(-1, 1, 17))
+    str1 = evenstream(xs, ys, zs, (x, y, z) -> 1.0, (x, y, z) -> 0.0, (x, y, z) -> z;
+        min_density=0.4, max_density=0.8)
+    str2 = evenstream(xs, ys, zs, (x, y, z) -> -1.0, (x, y, z) -> 0.0, (x, y, z) -> -z;
+        min_density=0.4, max_density=0.8)
+
+    str_obs = Observable(str1)
+    fig = Figure()
+    ax = Axis3(fig[1, 1])
+    p = streamlines!(ax, str_obs; with_arrows=true, arrows_every=4)
+    lines_plot = p.plots[1]
+    scatter_plot = p.plots[2]
+    pos_before = Makie.to_value(lines_plot[1][])
+    arrow_before = Makie.to_value(scatter_plot[1][])
+
+    str_obs[] = str2
+    pos_after = Makie.to_value(lines_plot[1][])
+    arrow_after = Makie.to_value(scatter_plot[1][])
+
+    @test pos_before != pos_after
+    @test arrow_before != arrow_after
 end
 
 
@@ -165,7 +242,7 @@ end
     @test cr[1] <= cr[2]
 
     # colorrange_from with scalar
-    @test ME.colorrange_from(:blue) === nothing
+    @test ME.colorrange_from(:blue) === Makie.automatic
 
     # colorrange_from with all-NaN vector
     @test ME.colorrange_from([NaN, NaN]) == (0.0, 1.0)
